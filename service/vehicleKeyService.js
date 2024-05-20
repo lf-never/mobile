@@ -68,9 +68,9 @@ const getCurrentTaskById = async function(taskId) {
                     ui.driverId,
                     ui.status as driverStatus
                 FROM urgent_indent ui
-                WHERE ui.id = '${indentId}'
+                WHERE ui.id = ?
             `, { 
-                type: QueryTypes.SELECT, replacements: []
+                type: QueryTypes.SELECT, replacements: [indentId]
             });
             if (taskList.length) {
                 task = taskList[0];
@@ -82,9 +82,9 @@ const getCurrentTaskById = async function(taskId) {
                     ud.driverId,
                     ud.status as driverStatus
                 FROM urgent_duty ud
-                WHERE ud.dutyId = '${taskId}'
+                WHERE ud.dutyId = ?
             `, { 
-                type: QueryTypes.SELECT, replacements: []
+                type: QueryTypes.SELECT, replacements: [taskId]
             });
             if (taskList.length) {
                 task = taskList[0];
@@ -595,10 +595,10 @@ module.exports = {
                         id, taskId, driverId, vehicleNo, 
                     optType, optTime, createdAt 
                     from key_opt_record 
-                    where taskId = '${taskId}' and optType in('withdrawConfirm', 'returnConfirm') 
+                    where taskId = ? and optType in('withdrawConfirm', 'returnConfirm') 
                     ORDER BY optTime, createdAt DESC;
                 `, { 
-                    type: QueryTypes.SELECT, replacements: []
+                    type: QueryTypes.SELECT, replacements: [taskId]
                 });
 
                 if (taskKeyOptRecordList.length) {
