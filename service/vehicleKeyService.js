@@ -580,14 +580,17 @@ module.exports = {
             }
 
             let keyStatus = 'in';
-            if (vehicleKeyTagId) {
-                let keyDetailInfo = await KeypressBoxDetailInfo.findOne({where : {keyTagId : vehicleKeyTagId}});
-                if (!keyDetailInfo) {
-                    keyStatus = 'out';
-                } 
-            } else {
-                keyStatus = 'noKey';
+            async function initKeyStatus() {
+                if (vehicleKeyTagId) {
+                    let keyDetailInfo = await KeypressBoxDetailInfo.findOne({where : {keyTagId : vehicleKeyTagId}});
+                    if (!keyDetailInfo) {
+                        keyStatus = 'out';
+                    } 
+                } else {
+                    keyStatus = 'noKey';
+                }
             }
+            await initKeyStatus();
 
             if (keyStatus == 'out') {
                 let taskKeyOptRecordList = await sequelizeObj.query(` 

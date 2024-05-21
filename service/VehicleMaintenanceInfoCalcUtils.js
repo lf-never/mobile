@@ -13,35 +13,38 @@ module.exports.reCalcVehicleMaintenanceInfo = async function(taskId, indentId) {
     try {
         if (!taskId) return null
         let task0 = null;
-        if (taskId.startsWith('DUTY')) {
-            let idArray = taskId.split('-');
-            if (idArray.length < 2) {
-                log.warn(`getCurrentTaskById error: TaskId ${taskId} format error.`)
-                return null;
+        async function buildTaskInfo() {
+            if (taskId.startsWith('DUTY')) {
+                let idArray = taskId.split('-');
+                if (idArray.length < 2) {
+                    log.warn(`getCurrentTaskById error: TaskId ${taskId} format error.`)
+                    return null;
+                }
+                taskId = `DUTY-${idArray[1]}`;
+                let taskList = await sequelizeObj.query(` 
+                    SELECT
+                        ui.mobileStartTime,
+                        ui.vehicleNo as vehicleNumber,
+                        uc.purpose,
+                        ui.driverId
+                    FROM urgent_indent ui
+                    LEFT JOIN urgent_duty ud on ui.dutyId = ud.id
+                    LEFT JOIN urgent_config uc on ud.configId = ud.id
+                    where ui.id=${indentId}
+                `, { 
+                    type: QueryTypes.SELECT, replacements: []
+                });
+                if (taskList && taskList.length > 0) {
+                    task0 = taskList[0];
+                }
+            } else {
+                task0 = await Task.findOne({ where: { taskId } })
             }
-            taskId = `DUTY-${idArray[1]}`;
-            let taskList = await sequelizeObj.query(` 
-                SELECT
-                    ui.mobileStartTime,
-                    ui.vehicleNo as vehicleNumber,
-                    uc.purpose,
-                    ui.driverId
-                FROM urgent_indent ui
-                LEFT JOIN urgent_duty ud on ui.dutyId = ud.id
-                LEFT JOIN urgent_config uc on ud.configId = ud.id
-                where ui.id=${indentId}
-            `, { 
-                type: QueryTypes.SELECT, replacements: []
-            });
-            if (taskList && taskList.length > 0) {
-                task0 = taskList[0];
+            if (task0) {
+                task0 = task0.dataValues ? task0.dataValues : task0;
             }
-        } else {
-            task0 = await Task.findOne({ where: { taskId } })
         }
-        if (task0) {
-            task0 = task0.dataValues ? task0.dataValues : task0;
-        }
+        await buildTaskInfo();
         if (task0 && task0.vehicleNumber) {
             let taskPurpose = task0.purpose;
             let vehicleNo = task0.vehicleNumber;
@@ -51,39 +54,40 @@ module.exports.reCalcVehicleMaintenanceInfo = async function(taskId, indentId) {
                 let needUpdate = false;
                 if (taskPurpose && taskPurpose.toLowerCase() == 'wpt') {
                     let wptTaskTime = task0.mobileStartTime;
-                    if (wptTaskTime) {
-                        wptTaskTime = moment(wptTaskTime);
-                        let wptTaskTimeStr = wptTaskTime.format('YYYY-MM-DD HH:mm:ss');
-                        let wptTimeStr = wptTaskTime.endOf('isoWeek').format('YYYY-MM-DD');
-                        if (wptTimeStr == vehicle.nextWpt1Time) {
-                            updateFields.nextWpt1Time = null;
-                            updateFields.wpt1CompleteTime = wptTaskTimeStr;
-                            needUpdate = true;
-                        } else if (wptTimeStr == vehicle.nextWpt2Time) {
-                            updateFields.nextWpt1Time = null;
-                            updateFields.nextWpt2Time = null;
-                            updateFields.wpt2CompleteTime = wptTaskTimeStr;
-                            needUpdate = true;
-                        } else if (wptTimeStr == vehicle.nextWpt3Time) {
-                            updateFields.nextWpt1Time = null;
-                            updateFields.nextWpt2Time = null;
-                            updateFields.nextWpt3Time = null;
-                            updateFields.wpt3CompleteTime = wptTaskTimeStr;
-                            needUpdate = true;
-                        } else if (vehicle.nextWpt3Time && wptTimeStr >= vehicle.nextWpt3Time) {
-                            updateFields.nextWpt1Time = null;
-                            updateFields.nextWpt2Time = null;
-                            updateFields.nextWpt3Time = null;
-                            updateFields.wpt3CompleteTime = wptTaskTimeStr;
-                            needUpdate = true;
+                    function rebuildWptInfo() {
+                        if (wptTaskTime) {
+                            wptTaskTime = moment(wptTaskTime);
+                            let wptTaskTimeStr = wptTaskTime.format('YYYY-MM-DD HH:mm:ss');
+                            let wptTimeStr = wptTaskTime.endOf('isoWeek').format('YYYY-MM-DD');
+                            if (wptTimeStr == vehicle.nextWpt1Time) {
+                                updateFields.nextWpt1Time = null;
+                                updateFields.wpt1CompleteTime = wptTaskTimeStr;
+                                needUpdate = true;
+                            } else if (wptTimeStr == vehicle.nextWpt2Time) {
+                                updateFields.nextWpt1Time = null;
+                                updateFields.nextWpt2Time = null;
+                                updateFields.wpt2CompleteTime = wptTaskTimeStr;
+                                needUpdate = true;
+                            } else if (wptTimeStr == vehicle.nextWpt3Time) {
+                                updateFields.nextWpt1Time = null;
+                                updateFields.nextWpt2Time = null;
+                                updateFields.nextWpt3Time = null;
+                                updateFields.wpt3CompleteTime = wptTaskTimeStr;
+                                needUpdate = true;
+                            } else if (vehicle.nextWpt3Time && wptTimeStr >= vehicle.nextWpt3Time) {
+                                updateFields.nextWpt1Time = null;
+                                updateFields.nextWpt2Time = null;
+                                updateFields.nextWpt3Time = null;
+                                updateFields.wpt3CompleteTime = wptTaskTimeStr;
+                                needUpdate = true;
+                            }
                         }
                     }
+                    rebuildWptInfo();
                 } else {
                     // task mileage >= 1 km
                     let mileage = await Mileage.findByPk(taskId);
                     if (mileage && mileage.mileageTraveled >= 1) {
-                        let weekStartDate = moment().startOf('isoWeek');
-                        let weekEndDate = moment().endOf('isoWeek');
 
                         let weekStartDateStr = moment().startOf('isoWeek').format('YYYY-MM-DD HH:mm:ss');
                         let weekEndDateStr = moment().endOf('isoWeek').format('YYYY-MM-DD HH:mm:ss');
