@@ -45,7 +45,7 @@ module.exports.reCalcVehicleMaintenanceInfo = async function(taskId, indentId) {
             }
         }
         await buildTaskInfo();
-        if (task0 && task0.vehicleNumber) {
+        if (task0?.vehicleNumber) {
             let taskPurpose = task0.purpose;
             let vehicleNo = task0.vehicleNumber;
             let vehicle = await Vehicle.findByPk(vehicleNo);
@@ -68,13 +68,7 @@ module.exports.reCalcVehicleMaintenanceInfo = async function(taskId, indentId) {
                                 updateFields.nextWpt2Time = null;
                                 updateFields.wpt2CompleteTime = wptTaskTimeStr;
                                 needUpdate = true;
-                            } else if (wptTimeStr == vehicle.nextWpt3Time) {
-                                updateFields.nextWpt1Time = null;
-                                updateFields.nextWpt2Time = null;
-                                updateFields.nextWpt3Time = null;
-                                updateFields.wpt3CompleteTime = wptTaskTimeStr;
-                                needUpdate = true;
-                            } else if (vehicle.nextWpt3Time && wptTimeStr >= vehicle.nextWpt3Time) {
+                            } else if (wptTimeStr >= vehicle.nextWpt3Time) {
                                 updateFields.nextWpt1Time = null;
                                 updateFields.nextWpt2Time = null;
                                 updateFields.nextWpt3Time = null;
@@ -86,45 +80,49 @@ module.exports.reCalcVehicleMaintenanceInfo = async function(taskId, indentId) {
                     rebuildWptInfo();
                 } else {
                     // task mileage >= 1 km
-                    let mileage = await Mileage.findByPk(taskId);
-                    if (mileage && mileage.mileageTraveled >= 1) {
-
-                        let weekStartDateStr = moment().startOf('isoWeek').format('YYYY-MM-DD HH:mm:ss');
-                        let weekEndDateStr = moment().endOf('isoWeek').format('YYYY-MM-DD HH:mm:ss');
-                        //this week has avi task completed
-                        let thisWeekAviTasks = await sequelizeObj.query(` SELECT
-                                t.taskId
-                            FROM task t
-                            LEFT JOIN mileage m ON t.taskId = m.taskId
-                            where t.vehicleNumber='${vehicleNo}' and t.driverStatus = 'completed' and LOWER(t.purpose)='avi' 
-                            and t.mobileEndTime BETWEEN  STR_TO_DATE('${weekStartDateStr}', '%Y-%m-%d %H:%i:%s')  AND STR_TO_DATE('${weekEndDateStr}', '%Y-%m-%d %H:%i:%s') `, 
-                        { type: QueryTypes.SELECT, replacements: []})
-
-                        let newWpt1Date = moment().endOf('isoWeek').add(7, 'day');
-                        let newWpt2Date = moment().endOf('isoWeek').add(14, 'day');
-                        let newWpt3Date = moment().endOf('isoWeek').add(21, 'day');
-                        let newMptDate = moment().endOf('isoWeek').add(28, 'day');
-                        if (thisWeekAviTasks && thisWeekAviTasks.length > 0) {
-                            newWpt1Date = moment().endOf('isoWeek').add(14, 'day');
-                            newWpt2Date = moment().endOf('isoWeek').add(21, 'day');
-                            newWpt3Date = moment().endOf('isoWeek').add(28, 'day');
-                            newMptDate = moment().endOf('isoWeek').add(35, 'day');
+                    async function buildCommonTaskWptInfo() {
+                        let mileage = await Mileage.findByPk(taskId);
+                        if (mileage && mileage.mileageTraveled >= 1) {
+    
+                            let weekStartDateStr = moment().startOf('isoWeek').format('YYYY-MM-DD HH:mm:ss');
+                            let weekEndDateStr = moment().endOf('isoWeek').format('YYYY-MM-DD HH:mm:ss');
+                            //this week has avi task completed
+                            let thisWeekAviTasks = await sequelizeObj.query(` SELECT
+                                    t.taskId
+                                FROM task t
+                                LEFT JOIN mileage m ON t.taskId = m.taskId
+                                where t.vehicleNumber='${vehicleNo}' and t.driverStatus = 'completed' and LOWER(t.purpose)='avi' 
+                                and t.mobileEndTime BETWEEN  STR_TO_DATE('${weekStartDateStr}', '%Y-%m-%d %H:%i:%s')  AND STR_TO_DATE('${weekEndDateStr}', '%Y-%m-%d %H:%i:%s') `, 
+                            { type: QueryTypes.SELECT, replacements: []})
+    
+                            let newWpt1Date = moment().endOf('isoWeek').add(7, 'day');
+                            let newWpt2Date = moment().endOf('isoWeek').add(14, 'day');
+                            let newWpt3Date = moment().endOf('isoWeek').add(21, 'day');
+                            let newMptDate = moment().endOf('isoWeek').add(28, 'day');
+                            if (thisWeekAviTasks && thisWeekAviTasks.length > 0) {
+                                newWpt1Date = moment().endOf('isoWeek').add(14, 'day');
+                                newWpt2Date = moment().endOf('isoWeek').add(21, 'day');
+                                newWpt3Date = moment().endOf('isoWeek').add(28, 'day');
+                                newMptDate = moment().endOf('isoWeek').add(35, 'day');
+                            }
+                            
+                            updateFields.nextWpt1Time = newWpt1Date;
+                            updateFields.wpt1CompleteTime = null;
+                            updateFields.nextWpt2Time = newWpt2Date;
+                            updateFields.wpt2CompleteTime = null;
+                            updateFields.nextWpt3Time = newWpt3Date;
+                            updateFields.wpt3CompleteTime = null;
+                            updateFields.nextMptTime = newMptDate;
+                            needUpdate = true;
                         }
-                        
-                        updateFields.nextWpt1Time = newWpt1Date;
-                        updateFields.wpt1CompleteTime = null;
-                        updateFields.nextWpt2Time = newWpt2Date;
-                        updateFields.wpt2CompleteTime = null;
-                        updateFields.nextWpt3Time = newWpt3Date;
-                        updateFields.wpt3CompleteTime = null;
-                        updateFields.nextMptTime = newMptDate;
-                        needUpdate = true;
+                        if (taskPurpose && taskPurpose.toLowerCase() == 'avi') {
+                            let nextAviTime = moment().add(1, 'year').add(-1, 'day');
+                            updateFields.nextAviTime = nextAviTime;
+                            needUpdate = true;
+                        }
                     }
-                    if (taskPurpose && taskPurpose.toLowerCase() == 'avi') {
-                        let nextAviTime = moment().add(1, 'year').add(-1, 'day');
-                        updateFields.nextAviTime = nextAviTime;
-                        needUpdate = true;
-                    }
+
+                    await buildCommonTaskWptInfo();
                 }
 
                 if (needUpdate) {
