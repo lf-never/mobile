@@ -124,47 +124,51 @@ const startCalcTo = async function(selectedMonth, monthRestDayStrs) {
             let driverTasks = taskInfoResult.filter(item => item.driverId == driverId);
 
             let workUnitIds = Array.from(new Set(driverTasks.map(item => item.unitId)));
-            if (workUnitIds && workUnitIds.length > 0) {
-                for (let workUnitId of workUnitIds) {
-                    let unitTasks = taskInfoResult.filter(item => item.driverId == driverId && item.unitId == workUnitId);
-                    let leaveDays = [];
-                    let hotoOutDays = [];
-                    if (workUnitId == driverUnitId) {
-                        leaveDays = leaveDaysResult.filter(item => item.driverId == driverId);
-                        hotoOutDays = hotoDaysResult.filter(item => item.driverId == driverId);
+            async function buildDriverUnitWorkData() {
+                if (workUnitIds.length > 0) {
+                    for (let workUnitId of workUnitIds) {
+                        let unitTasks = taskInfoResult.filter(item => item.driverId == driverId && item.unitId == workUnitId);
+                        let leaveDays = [];
+                        let hotoOutDays = [];
+                        if (workUnitId == driverUnitId) {
+                            leaveDays = leaveDaysResult.filter(item => item.driverId == driverId);
+                            hotoOutDays = hotoDaysResult.filter(item => item.driverId == driverId);
+                        }
+                        let toWorkTimeInfo = await calcDriverMonthWorkTime(driverId, selectedMonth, unitTasks, leaveDays, hotoOutDays, monthRestDayStrs);
+    
+                        driverUnitWorkdaysList.push({
+                            driverId,
+                            month: selectedMonth,
+                            driverUnitId,
+                            workUnitId: workUnitId,
+                            taskNum: toWorkTimeInfo.taskNum,
+                            planWorkDays: toWorkTimeInfo.planWorkDays, 
+                            actualWorkDays: toWorkTimeInfo.actualWorkDays,
+                            leaveDays: toWorkTimeInfo.toLeaveDays,
+                            hotoOutDays: toWorkTimeInfo.toHotoOutDays
+                        });
                     }
-                    let toWorkTimeInfo = await calcDriverMonthWorkTime(driverId, selectedMonth, unitTasks, leaveDays, hotoOutDays, monthRestDayStrs);
-
+                }
+                if (driverUnitWorkdaysList.length == 0) {
+                    let leaveDays = leaveDaysResult.filter(item => item.driverId == driverId);
+                    let hotoOutDays = hotoDaysResult.filter(item => item.driverId == driverId);
+                    let toWorkTimeInfo = await calcDriverMonthWorkTime(driverId, selectedMonth, [], leaveDays, hotoOutDays, monthRestDayStrs);
+    
                     driverUnitWorkdaysList.push({
                         driverId,
                         month: selectedMonth,
                         driverUnitId,
-                        workUnitId: workUnitId,
-                        taskNum: toWorkTimeInfo.taskNum,
-                        planWorkDays: toWorkTimeInfo.planWorkDays, 
-                        actualWorkDays: toWorkTimeInfo.actualWorkDays,
-                        leaveDays: toWorkTimeInfo.toLeaveDays,
-                        hotoOutDays: toWorkTimeInfo.toHotoOutDays
+                        workUnitId: driverUnitId,
+                        taskNum: 0,
+                        planWorkDays: 0, 
+                        actualWorkDays: 0,
+                        leaveDays: toWorkTimeInfo ? toWorkTimeInfo.toLeaveDays : 0,
+                        hotoOutDays: toWorkTimeInfo ? toWorkTimeInfo.toHotoOutDays : 0
                     });
                 }
             }
-            if (driverUnitWorkdaysList.length == 0) {
-                let leaveDays = leaveDaysResult.filter(item => item.driverId == driverId);
-                let hotoOutDays = hotoDaysResult.filter(item => item.driverId == driverId);
-                let toWorkTimeInfo = await calcDriverMonthWorkTime(driverId, selectedMonth, [], leaveDays, hotoOutDays, monthRestDayStrs);
 
-                driverUnitWorkdaysList.push({
-                    driverId,
-                    month: selectedMonth,
-                    driverUnitId,
-                    workUnitId: driverUnitId,
-                    taskNum: 0,
-                    planWorkDays: 0, 
-                    actualWorkDays: 0,
-                    leaveDays: toWorkTimeInfo ? toWorkTimeInfo.toLeaveDays : 0,
-                    hotoOutDays: toWorkTimeInfo ? toWorkTimeInfo.toHotoOutDays : 0
-                });
-            }
+            await buildDriverUnitWorkData();
 
             await DriverMonthWorkdays.destroy({where: {driverId, month: selectedMonth}});
             await DriverMonthWorkdays.bulkCreate(driverUnitWorkdaysList);
@@ -250,47 +254,52 @@ const startCalcVehicle = async function(selectedMonth, monthRestDayStrs) {
             let vehicleTasks = taskInfoResult.filter(item => item.vehicleNo == vehicleNo);
             
             let workUnitIds = Array.from(new Set(vehicleTasks.map(item => item.unitId)));
-            if (workUnitIds && workUnitIds.length > 0) {
-                for (let workUnitId of workUnitIds) {
-                    let unitTasks = taskInfoResult.filter(item => item.vehicleNo == vehicleNo && item.unitId == workUnitId);
-                    let leaveDays = [];
-                    let hotoOutDays = [];
-                    if (workUnitId == vehicleUnitId) {
-                        leaveDays = leaveDaysResult.filter(item => item.vehicleNo == vehicleNo);
-                        hotoOutDays = hotoDaysResult.filter(item => item.vehicleNo == vehicleNo);
-                    }
-                    let vehicleWorkTimeInfo = await calcVehicleMonthWorkTime(vehicleNo, selectedMonth, unitTasks, leaveDays, hotoOutDays, monthRestDayStrs);
 
+            async function buildVehicleUnitWorkData() {
+                if (workUnitIds.length > 0) {
+                    for (let workUnitId of workUnitIds) {
+                        let unitTasks = taskInfoResult.filter(item => item.vehicleNo == vehicleNo && item.unitId == workUnitId);
+                        let leaveDays = [];
+                        let hotoOutDays = [];
+                        if (workUnitId == vehicleUnitId) {
+                            leaveDays = leaveDaysResult.filter(item => item.vehicleNo == vehicleNo);
+                            hotoOutDays = hotoDaysResult.filter(item => item.vehicleNo == vehicleNo);
+                        }
+                        let vehicleWorkTimeInfo = await calcVehicleMonthWorkTime(vehicleNo, selectedMonth, unitTasks, leaveDays, hotoOutDays, monthRestDayStrs);
+    
+                        vehicleUnitWorkdaysList.push({
+                            vehicleNo,
+                            month: selectedMonth,
+                            vehicleUnitId,
+                            workUnitId: workUnitId,
+                            taskNum: vehicleWorkTimeInfo.taskNum,
+                            planWorkDays: vehicleWorkTimeInfo.planWorkDays, 
+                            actualWorkDays: vehicleWorkTimeInfo.actualWorkDays,
+                            eventDays: vehicleWorkTimeInfo.vehicleLeaveDays,
+                            hotoOutDays: vehicleWorkTimeInfo.vehicleHotoOutDays
+                        });
+                    }
+                }
+                if (vehicleUnitWorkdaysList.length == 0) {
+                    let leaveDays = leaveDaysResult.filter(item => item.vehicleNo == vehicleNo);
+                    let hotoOutDays = hotoDaysResult.filter(item => item.vehicleNo == vehicleNo);
+                    let vehicleWorkTimeInfo = await calcVehicleMonthWorkTime(vehicleNo, selectedMonth, [], leaveDays, hotoOutDays, monthRestDayStrs);
+    
                     vehicleUnitWorkdaysList.push({
                         vehicleNo,
                         month: selectedMonth,
                         vehicleUnitId,
-                        workUnitId: workUnitId,
-                        taskNum: vehicleWorkTimeInfo.taskNum,
-                        planWorkDays: vehicleWorkTimeInfo.planWorkDays, 
-                        actualWorkDays: vehicleWorkTimeInfo.actualWorkDays,
-                        eventDays: vehicleWorkTimeInfo.vehicleLeaveDays,
-                        hotoOutDays: vehicleWorkTimeInfo.vehicleHotoOutDays
+                        workUnitId: vehicleUnitId,
+                        taskNum: 0,
+                        planWorkDays: 0, 
+                        actualWorkDays: 0,
+                        eventDays: vehicleWorkTimeInfo ? vehicleWorkTimeInfo.vehicleLeaveDays : 0,
+                        hotoOutDays: vehicleWorkTimeInfo ? vehicleWorkTimeInfo.vehicleHotoOutDays : 0
                     });
                 }
             }
-            if (vehicleUnitWorkdaysList.length == 0) {
-                let leaveDays = leaveDaysResult.filter(item => item.vehicleNo == vehicleNo);
-                let hotoOutDays = hotoDaysResult.filter(item => item.vehicleNo == vehicleNo);
-                let vehicleWorkTimeInfo = await calcVehicleMonthWorkTime(vehicleNo, selectedMonth, [], leaveDays, hotoOutDays, monthRestDayStrs);
 
-                vehicleUnitWorkdaysList.push({
-                    vehicleNo,
-                    month: selectedMonth,
-                    vehicleUnitId,
-                    workUnitId: vehicleUnitId,
-                    taskNum: 0,
-                    planWorkDays: 0, 
-                    actualWorkDays: 0,
-                    eventDays: vehicleWorkTimeInfo ? vehicleWorkTimeInfo.vehicleLeaveDays : 0,
-                    hotoOutDays: vehicleWorkTimeInfo ? vehicleWorkTimeInfo.vehicleHotoOutDays : 0
-                });
-            }
+            await buildVehicleUnitWorkData();
 
             await VehicleMonthWorkdays.destroy({where: {vehicleNo, month: selectedMonth}});
             await VehicleMonthWorkdays.bulkCreate(vehicleUnitWorkdaysList);
@@ -316,171 +325,55 @@ const calcDriverMonthWorkTime = async function(driverId, selectedMonth, driverMo
     let monthEndDayStr = moment(selectedMonth+'-01 00:00:00', 'YYYY-MM-DD HH:mm:ss').add(1, 'months').add(-1, 'seconds').format('YYYYMMDD');
     //leave days
     let toLeaveDays = 0;
-    if (leaveDaysResult && leaveDaysResult.length > 0) {
-        for (let temp of leaveDaysResult) {
-            toLeaveDays += temp.leaveDays ? Number(temp.leaveDays).valueOf() : 0;
-        }
+    for (let temp of leaveDaysResult) {
+        toLeaveDays += temp.leaveDays ? Number(temp.leaveDays).valueOf() : 0;
     }
     result.toLeaveDays = toLeaveDays;
 
     //hoto out days
-    let hotoOutIntervalList = [];
-    if (hotoOutDaysResult && hotoOutDaysResult.length > 0) {
-        for (let temp of hotoOutDaysResult) {
-            if (Number(moment(temp.startDateTime).format('H')) < 12) {
-                temp.startDateTime = moment(temp.startDateTime).format('YYYY-MM-DD') + ' 00:00:00';
-            } else {
-                temp.startDateTime = moment(temp.startDateTime).format('YYYY-MM-DD') + ' 12:00:00';
-            }
-            if (Number(moment(temp.endDateTime).format('H')) < 12) {
-                temp.endDateTime = moment(temp.endDateTime).format('YYYY-MM-DD') + ' 11:59:59';
-            } else {
-                temp.endDateTime = moment(temp.endDateTime).format('YYYY-MM-DD') + ' 23:59:59';
-            }
-            let hotoStartTimeLong = moment(temp.startDateTime).format('YYYYMMDDHHmmss');
-            if (monthStartTimeLong > hotoStartTimeLong) {
-                temp.startDateTime = selectedMonth+'-01 00:00:00';
-            }
-            let hotoEndTimeLong = moment(temp.endDateTime).format('YYYYMMDDHHmmss');
-            if (monthEndTimeLong < hotoEndTimeLong) {
-                temp.endDateTime = moment(selectedMonth+'-01 00:00:00', 'YYYY-MM-DD HH:mm:ss').add(1, 'months').add(-1, 'seconds').format('YYYY-MM-DD HH:mm:ss');
-            }
-        }
+    processHotoOutDate(hotoOutDaysResult, monthStartTimeLong, monthEndTimeLong);
 
-        //split hoto days to every day list then exclude month rest days(weekend and holidays)
-        let newHotoDaysList = [];
-        for (let temp of hotoOutDaysResult) {
-            let startDayStr = moment(temp.startDateTime).format('YYYYMMDD');
-            let endDayStr = moment(temp.endDateTime).format('YYYYMMDD');
-            endDayStr = endDayStr > monthEndDayStr ? monthEndDayStr : endDayStr;
+    //split hoto days to every day list then exclude month rest days(weekend and holidays)
+    let newHotoDaysList = splitHotoOutDate(hotoOutDaysResult, monthRestDayStrs, monthEndDayStr);
 
-            let diffDays = Number(endDayStr) - Number(startDayStr);
-            let index = 0;
-            while (index <= diffDays) {
-                let hotoDayStr = moment(temp.startDateTime).add(index, 'days').format('YYYY-MM-DD');
-                if (monthRestDayStrs.indexOf(hotoDayStr) != -1) {
-                    index++;
-                    continue;
-                }
+    //hoto data order by startDateTime asc
+    newHotoDaysList = newHotoDaysList.sort(function(item1, item2) {
+        if (moment(item1.startDateTime).isBefore(moment(item2.startDateTime))) {
+            return -1;
+        } 
+        return 1;
+    });
 
-                let hotoDay = {startDateTime: '', endDateTime: ''};
-                if (index == 0) {
-                    hotoDay.startDateTime = temp.startDateTime;
-                } else {
-                    hotoDay.startDateTime = hotoDayStr + ' 00:00:00';
-                }
-                if (index == (diffDays - 1) || diffDays == 0) {
-                    hotoDay.endDateTime = temp.endDateTime;
-                } else {
-                    hotoDay.endDateTime = hotoDayStr + ' 23:59:59';
-                }
-                newHotoDaysList.push(hotoDay);
-                index++;
-            }
-        }
-
-        //hoto data order by startDateTime asc
-        newHotoDaysList = newHotoDaysList.sort(function(item1, item2) {
-            if (moment(item1.startDateTime).isBefore(moment(item2.startDateTime))) {
-                return -1;
-            } 
-            return 1;
-        });
-
-        //Merge Intersections days
-        for (let temp of newHotoDaysList) {
-            let tempStartTimeLong = Number(moment(temp.startDateTime).format('YYYYMMDDHHmmss'));
-            let tempEndTimeLong = Number(moment(temp.endDateTime).format('YYYYMMDDHHmmss'));
-
-            if (hotoOutIntervalList.length > 0) {
-                let preLeave = hotoOutIntervalList[hotoOutIntervalList.length - 1];
-                if (tempStartTimeLong < preLeave.endTime) {
-                    if (tempEndTimeLong > preLeave.endTime) {
-                        preLeave.endTime = tempEndTimeLong;
-                    }
-                } else {
-                    hotoOutIntervalList.push({
-                        startTime: tempStartTimeLong,
-                        endTime: tempEndTimeLong
-                    });
-                }
-            } else {
-                hotoOutIntervalList.push({
-                    startTime: tempStartTimeLong,
-                    endTime: tempEndTimeLong
-                });
-            }
-        }
-    }
-
-    let hotoOutDays = 0;
-    if (hotoOutIntervalList.length > 0) {
-        for (let timeInterval of hotoOutIntervalList) {
-            let startTime = timeInterval.startTime;
-            let endTime = timeInterval.endTime;
-            if (startTime < monthStartTimeLong) {
-                startTime = monthStartTimeLong;
-            }
-            if (endTime > monthEndTimeLong) {
-                endTime = monthEndTimeLong;
-            }
-            let tempHotoOutDays = calcWorkTime(startTime, endTime);
-            hotoOutDays += tempHotoOutDays;
-        }
-    }
+    //Merge Intersections days
+    let hotoOutIntervalList = mergeHotoOutDate(newHotoDaysList);
+    let hotoOutDays = calcHotoOutDays(hotoOutIntervalList);
     result.toHotoOutDays = hotoOutDays;
 
     if (driverMonthTaskList.length == 0) {
         return result;     
     }
+
     for (let task of driverMonthTaskList) {
-        if (Number(moment(task.indentStartTime).format('H')) < 12) {
-            task.indentStartTime = moment(task.indentStartTime).format('YYYY-MM-DD') + ' 00:00:00';
-        } else {
-            task.indentStartTime = moment(task.indentStartTime).format('YYYY-MM-DD') + ' 12:00:00';
-        }
-        if (Number(moment(task.indentEndTime).format('H')) < 12) {
-            task.indentEndTime = moment(task.indentEndTime).format('YYYY-MM-DD') + ' 11:59:59';
-        } else {
-            task.indentEndTime = moment(task.indentEndTime).format('YYYY-MM-DD') + ' 23:59:59';
-        }
-        if (task.mobileStartTime && task.mobileEndTime) {
-            if (Number(moment(task.mobileStartTime).format('H')) < 12) {
-                task.mobileStartTime = moment(task.mobileStartTime).format('YYYY-MM-DD') + ' 00:00:00';
-            } else {
-                task.mobileStartTime = moment(task.mobileStartTime).format('YYYY-MM-DD') + ' 12:00:00';
-            }
-            if (Number(moment(task.mobileEndTime).format('H')) < 12) {
-                task.mobileEndTime = moment(task.mobileEndTime).format('YYYY-MM-DD') + ' 11:59:59';
-            } else {
-                task.mobileEndTime = moment(task.mobileEndTime).format('YYYY-MM-DD') + ' 23:59:59';
-            }
-        }
+        buildTaskPlanDate(task);
+        buildTaskActualDate(task);
     }
     driverMonthTaskList = driverMonthTaskList.sort(function(item1, item2) {
         if (moment(item1.indentStartTime).isBefore(moment(item2.indentStartTime))) {
             return -1;
         } 
         return 1;
-    })
+    });
+
     let driverMonthPlanWorktimeIntervalList = [];
     let driverMonthActualWorktimeIntervalList = [];
-    if (driverMonthTaskList && driverMonthTaskList.length > 0) {
-        for (let temp of driverMonthTaskList) {
-            // plan work time
-            let tempStartTimeLong = Number(moment(temp.indentStartTime).format('YYYYMMDDHHmmss'));
-            let tempEndTimeLong = Number(moment(temp.indentEndTime).format('YYYYMMDDHHmmss'));
-            if (driverMonthPlanWorktimeIntervalList.length > 0) {
-                let preLeave = driverMonthPlanWorktimeIntervalList[driverMonthPlanWorktimeIntervalList.length - 1];
-                if (tempStartTimeLong < preLeave.endTime) {
-                    if (tempEndTimeLong > preLeave.endTime) {
-                        preLeave.endTime = tempEndTimeLong;
-                    }
-                } else {
-                    driverMonthPlanWorktimeIntervalList.push({
-                        startTime: tempStartTimeLong,
-                        endTime: tempEndTimeLong
-                    });
+    function buildTaskPlanDate1(temp) {
+        let tempStartTimeLong = Number(moment(temp.indentStartTime).format('YYYYMMDDHHmmss'));
+        let tempEndTimeLong = Number(moment(temp.indentEndTime).format('YYYYMMDDHHmmss'));
+        if (driverMonthPlanWorktimeIntervalList.length > 0) {
+            let preLeave = driverMonthPlanWorktimeIntervalList[driverMonthPlanWorktimeIntervalList.length - 1];
+            if (tempStartTimeLong < preLeave.endTime) {
+                if (tempEndTimeLong > preLeave.endTime) {
+                    preLeave.endTime = tempEndTimeLong;
                 }
             } else {
                 driverMonthPlanWorktimeIntervalList.push({
@@ -488,40 +381,53 @@ const calcDriverMonthWorkTime = async function(driverId, selectedMonth, driverMo
                     endTime: tempEndTimeLong
                 });
             }
-            //actual work time
-            if (temp.mobileStartTime && temp.mobileEndTime) {
-                tempStartTimeLong = Number(moment(temp.mobileStartTime).format('YYYYMMDDHHmmss'));
-                tempEndTimeLong = Number(moment(temp.mobileEndTime).format('YYYYMMDDHHmmss'));
-
-                if (tempStartTimeLong > monthEndTimeLong || tempEndTimeLong < monthStartTimeLong) {
-                    continue;
-                }
-
-                if (driverMonthActualWorktimeIntervalList.length > 0) {
-                    let preLeave = driverMonthActualWorktimeIntervalList[driverMonthActualWorktimeIntervalList.length - 1];
-                    if (tempStartTimeLong < preLeave.endTime) {
-                        if (tempEndTimeLong > preLeave.endTime) {
-                            preLeave.endTime = tempEndTimeLong;
-                        }
-                    } else {
-                        driverMonthActualWorktimeIntervalList.push({
-                            startTime: tempStartTimeLong,
-                            endTime: tempEndTimeLong
-                        });
-                    }
-                } else {
-                    driverMonthActualWorktimeIntervalList.push({
-                        startTime: tempStartTimeLong,
-                        endTime: tempEndTimeLong
-                    });
-                }
-            }
+        } else {
+            driverMonthPlanWorktimeIntervalList.push({
+                startTime: tempStartTimeLong,
+                endTime: tempEndTimeLong
+            });
         }
+    }
+    function buildTaskActualDate1(temp) {
+        if (!temp.mobileStartTime || !temp.mobileEndTime) {
+            return;
+        }
+       
+        let tempStartTimeLong = Number(moment(temp.mobileStartTime).format('YYYYMMDDHHmmss'));
+        let tempEndTimeLong = Number(moment(temp.mobileEndTime).format('YYYYMMDDHHmmss'));
+        if (tempStartTimeLong > monthEndTimeLong || tempEndTimeLong < monthStartTimeLong) {
+            return;
+        }
+
+        if (driverMonthActualWorktimeIntervalList.length > 0) {
+            let preLeave = driverMonthActualWorktimeIntervalList[driverMonthActualWorktimeIntervalList.length - 1];
+            if (tempStartTimeLong < preLeave.endTime) {
+                if (tempEndTimeLong > preLeave.endTime) {
+                    preLeave.endTime = tempEndTimeLong;
+                }
+            } else {
+                driverMonthActualWorktimeIntervalList.push({
+                    startTime: tempStartTimeLong,
+                    endTime: tempEndTimeLong
+                });
+            }
+        } else {
+            driverMonthActualWorktimeIntervalList.push({
+                startTime: tempStartTimeLong,
+                endTime: tempEndTimeLong
+            });
+        }
+    }
+    for (let task of driverMonthTaskList) {
+        // plan work time
+        buildTaskPlanDate1(task);
+        //actual work time
+        buildTaskActualDate1(task);
     }
 
     //stat plan work times
-    let planWorkDays = 0;
-    if (driverMonthPlanWorktimeIntervalList.length > 0) {
+    function statPlanWorkTimes() {
+        let planWorkDays = 0;
         for (let timeInterval of driverMonthPlanWorktimeIntervalList) {
             let startTime = timeInterval.startTime;
             let endTime = timeInterval.endTime;
@@ -534,12 +440,13 @@ const calcDriverMonthWorkTime = async function(driverId, selectedMonth, driverMo
             let workDays = calcWorkTime(startTime, endTime);
             planWorkDays += workDays;
         }
+        result.planWorkDays = planWorkDays;
     }
-    result.planWorkDays = planWorkDays;
+    statPlanWorkTimes();
 
     //stat actual work times
-    let actualWorkDays = 0;
-    if (driverMonthActualWorktimeIntervalList.length > 0) {
+    function statActualWorkTimes() {
+        let actualWorkDays = 0;
         for (let timeInterval of driverMonthActualWorktimeIntervalList) {
             let startTime = timeInterval.startTime;
             let endTime = timeInterval.endTime;
@@ -552,8 +459,9 @@ const calcDriverMonthWorkTime = async function(driverId, selectedMonth, driverMo
             let workDays = calcWorkTime(startTime, endTime);
             actualWorkDays += workDays;
         }
+        result.actualWorkDays = actualWorkDays;
     }
-    result.actualWorkDays = actualWorkDays;
+    statActualWorkTimes();
 
     return result;
 }
@@ -573,147 +481,38 @@ const calcVehicleMonthWorkTime = async function(vehicleNo, selectedMonth, vehicl
     let monthEndDayStr = moment(selectedMonth+'-01 00:00:00', 'YYYY-MM-DD HH:mm:ss').add(1, 'months').add(-1, 'seconds').format('YYYYMMDD')
     //leave days
     let vehicleLeaveDays = 0;
-    if (leaveDaysResult && leaveDaysResult.length > 0) {
-        for (let temp of leaveDaysResult) {
-            vehicleLeaveDays += temp.leaveDays ? Number(temp.leaveDays).valueOf() : 0;
-        }
+    for (let temp of leaveDaysResult) {
+        vehicleLeaveDays += temp.leaveDays ? Number(temp.leaveDays).valueOf() : 0;
     }
     result.vehicleLeaveDays = vehicleLeaveDays;
 
     //hoto out days
-    let hotoOutIntervalList = [];
-    if (hotoOutDaysResult && hotoOutDaysResult.length > 0) {
-        for (let temp of hotoOutDaysResult) {
-            if (Number(moment(temp.startDateTime).format('H')) < 12) {
-                temp.startDateTime = moment(temp.startDateTime).format('YYYY-MM-DD') + ' 00:00:00';
-            } else {
-                temp.startDateTime = moment(temp.startDateTime).format('YYYY-MM-DD') + ' 12:00:00';
-            }
-            if (Number(moment(temp.endDateTime).format('H')) < 12) {
-                temp.endDateTime = moment(temp.endDateTime).format('YYYY-MM-DD') + ' 11:59:59';
-            } else {
-                temp.endDateTime = moment(temp.endDateTime).format('YYYY-MM-DD') + ' 23:59:59';
-            }
+    processHotoOutDate(hotoOutDaysResult, monthStartTimeLong, monthEndTimeLong);
 
-            let hotoStartTimeLong = moment(temp.startDateTime).format('YYYYMMDDHHmmss');
-            if (monthStartTimeLong > hotoStartTimeLong) {
-                temp.startDateTime = selectedMonth+'-01 00:00:00';
-            }
-            let hotoEndTimeLong = moment(temp.endDateTime).format('YYYYMMDDHHmmss');
-            if (monthEndTimeLong < hotoEndTimeLong) {
-                temp.endDateTime = moment(selectedMonth+'-01 00:00:00', 'YYYY-MM-DD HH:mm:ss').add(1, 'months').add(-1, 'seconds').format('YYYY-MM-DD HH:mm:ss');
-            }
-        }
+    //split hoto days to every day list then exclude month rest days(weekend and holidays)
+    let newHotoDaysList = splitHotoOutDate(hotoOutDaysResult, monthRestDayStrs, monthEndDayStr);
 
-        //split hoto days to every day list then exclude month rest days(weekend and holidays)
-        let newHotoDaysList = [];
-        for (let temp of hotoOutDaysResult) {
-            let startDayStr = moment(temp.startDateTime).format('YYYYMMDD');
-            let endDayStr = moment(temp.endDateTime).format('YYYYMMDD');
-            endDayStr = endDayStr > monthEndDayStr ? monthEndDayStr : endDayStr;
+    //hoto data order by startDateTime asc
+    newHotoDaysList = newHotoDaysList.sort(function(item1, item2) {
+        if (moment(item1.startDateTime).isBefore(moment(item2.startDateTime))) {
+            return -1;
+        } 
+        return 1;
+    });
 
-            let diffDays = Number(endDayStr) - Number(startDayStr);
-            let index = 0;
-            while (index <= diffDays) {
-                let hotoDayStr = moment(temp.startDateTime).add(index, 'days').format('YYYY-MM-DD');
-                if (monthRestDayStrs.indexOf(hotoDayStr) != -1) {
-                    index++;
-                    continue;
-                }
+    //Merge Intersections days
+    let hotoOutIntervalList = mergeHotoOutDate(newHotoDaysList);
 
-                let hotoDay = {startDateTime: '', endDateTime: ''};
-                if (index == 0) {
-                    hotoDay.startDateTime = temp.startDateTime;
-                } else {
-                    hotoDay.startDateTime = hotoDayStr + ' 00:00:00';
-                }
-                if (index == (diffDays - 1) || diffDays == 0) {
-                    hotoDay.endDateTime = temp.endDateTime;
-                } else {
-                    hotoDay.endDateTime = hotoDayStr + ' 23:59:59';
-                }
-                newHotoDaysList.push(hotoDay);
-                index++;
-            }
-        }
+    let hotoOutDays = calcHotoOutDays(hotoOutIntervalList);
 
-        //hoto data order by startDateTime asc
-        newHotoDaysList = newHotoDaysList.sort(function(item1, item2) {
-            if (moment(item1.startDateTime).isBefore(moment(item2.startDateTime))) {
-                return -1;
-            } 
-            return 1;
-        });
-
-        //Merge Intersections days
-        for (let temp of newHotoDaysList) {
-            let tempStartTimeLong = Number(moment(temp.startDateTime).format('YYYYMMDDHHmmss'));
-            let tempEndTimeLong = Number(moment(temp.endDateTime).format('YYYYMMDDHHmmss'));
-
-            if (hotoOutIntervalList.length > 0) {
-                let preLeave = hotoOutIntervalList[hotoOutIntervalList.length - 1];
-                if (tempStartTimeLong < preLeave.endTime) {
-                    if (tempEndTimeLong > preLeave.endTime) {
-                        preLeave.endTime = tempEndTimeLong;
-                    }
-                } else {
-                    hotoOutIntervalList.push({
-                        startTime: tempStartTimeLong,
-                        endTime: tempEndTimeLong
-                    });
-                }
-            } else {
-                hotoOutIntervalList.push({
-                    startTime: tempStartTimeLong,
-                    endTime: tempEndTimeLong
-                });
-            }
-        }
-    }
-
-    let hotoOutDays = 0;
-    if (hotoOutIntervalList.length > 0) {
-        for (let timeInterval of hotoOutIntervalList) {
-            let startTime = timeInterval.startTime;
-            let endTime = timeInterval.endTime;
-            if (startTime < monthStartTimeLong) {
-                startTime = monthStartTimeLong;
-            }
-            if (endTime > monthEndTimeLong) {
-                endTime = monthEndTimeLong;
-            }
-            let tempHotoOutDays = calcWorkTime(startTime, endTime);
-            hotoOutDays += tempHotoOutDays;
-        }
-    }
     result.vehicleHotoOutDays = hotoOutDays;
 
     if (vehicleMonthTaskList.length == 0) {
         return result;     
     }
     for (let task of vehicleMonthTaskList) {
-        if (Number(moment(task.indentStartTime).format('H')) < 12) {
-            task.indentStartTime = moment(task.indentStartTime).format('YYYY-MM-DD') + ' 00:00:00';
-        } else {
-            task.indentStartTime = moment(task.indentStartTime).format('YYYY-MM-DD') + ' 12:00:00';
-        }
-        if (Number(moment(task.indentEndTime).format('H')) < 12) {
-            task.indentEndTime = moment(task.indentEndTime).format('YYYY-MM-DD') + ' 11:59:59';
-        } else {
-            task.indentEndTime = moment(task.indentEndTime).format('YYYY-MM-DD') + ' 23:59:59';
-        }
-        if (task.mobileStartTime && task.mobileEndTime) {
-            if (Number(moment(task.mobileStartTime).format('H')) < 12) {
-                task.mobileStartTime = moment(task.mobileStartTime).format('YYYY-MM-DD') + ' 00:00:00';
-            } else {
-                task.mobileStartTime = moment(task.mobileStartTime).format('YYYY-MM-DD') + ' 12:00:00';
-            }
-            if (Number(moment(task.mobileEndTime).format('H')) < 12) {
-                task.mobileEndTime = moment(task.mobileEndTime).format('YYYY-MM-DD') + ' 11:59:59';
-            } else {
-                task.mobileEndTime = moment(task.mobileEndTime).format('YYYY-MM-DD') + ' 23:59:59';
-            }
-        }
+        buildTaskPlanDate(task);
+        buildTaskActualDate(task);
     }
     vehicleMonthTaskList = vehicleMonthTaskList.sort(function(item1, item2) {
         if (moment(item1.indentStartTime).isBefore(moment(item2.indentStartTime))) {
@@ -723,8 +522,7 @@ const calcVehicleMonthWorkTime = async function(vehicleNo, selectedMonth, vehicl
     })
     let vehicleMonthPlanWorktimeIntervalList = [];
     let vehicleMonthActualWorktimeIntervalList = [];
-    for (let temp of vehicleMonthTaskList) {
-        // plan work time
+    function buildTaskPlanDate1(temp) {
         let tempStartTimeLong = Number(moment(temp.indentStartTime).format('YYYYMMDDHHmmss'));
         let tempEndTimeLong = Number(moment(temp.indentEndTime).format('YYYYMMDDHHmmss'));
         if (vehicleMonthPlanWorktimeIntervalList.length > 0) {
@@ -745,26 +543,23 @@ const calcVehicleMonthWorkTime = async function(vehicleNo, selectedMonth, vehicl
                 endTime: tempEndTimeLong
             });
         }
-        //actual work time
-        if (temp.mobileStartTime && temp.mobileEndTime) {
-            tempStartTimeLong = Number(moment(temp.mobileStartTime).format('YYYYMMDDHHmmss'));
-            tempEndTimeLong = Number(moment(temp.mobileEndTime).format('YYYYMMDDHHmmss'));
+    }
+    function buildTaskActualDate1(temp) {
+        if (!temp.mobileStartTime || !temp.mobileEndTime) {
+            return;
+        }
+        let tempStartTimeLong = Number(moment(temp.mobileStartTime).format('YYYYMMDDHHmmss'));
+        let tempEndTimeLong = Number(moment(temp.mobileEndTime).format('YYYYMMDDHHmmss'));
 
-            if (tempStartTimeLong > monthEndTimeLong || tempEndTimeLong < monthStartTimeLong) {
-                continue;
-            }
+        if (tempStartTimeLong > monthEndTimeLong || tempEndTimeLong < monthStartTimeLong) {
+            return;
+        }
 
-            if (vehicleMonthActualWorktimeIntervalList.length > 0) {
-                let preLeave = vehicleMonthActualWorktimeIntervalList[vehicleMonthActualWorktimeIntervalList.length - 1];
-                if (tempStartTimeLong < preLeave.endTime) {
-                    if (tempEndTimeLong > preLeave.endTime) {
-                        preLeave.endTime = tempEndTimeLong;
-                    }
-                } else {
-                    vehicleMonthActualWorktimeIntervalList.push({
-                        startTime: tempStartTimeLong,
-                        endTime: tempEndTimeLong
-                    });
+        if (vehicleMonthActualWorktimeIntervalList.length > 0) {
+            let preLeave = vehicleMonthActualWorktimeIntervalList[vehicleMonthActualWorktimeIntervalList.length - 1];
+            if (tempStartTimeLong < preLeave.endTime) {
+                if (tempEndTimeLong > preLeave.endTime) {
+                    preLeave.endTime = tempEndTimeLong;
                 }
             } else {
                 vehicleMonthActualWorktimeIntervalList.push({
@@ -772,12 +567,23 @@ const calcVehicleMonthWorkTime = async function(vehicleNo, selectedMonth, vehicl
                     endTime: tempEndTimeLong
                 });
             }
+        } else {
+            vehicleMonthActualWorktimeIntervalList.push({
+                startTime: tempStartTimeLong,
+                endTime: tempEndTimeLong
+            });
         }
+    }
+    for (let temp of vehicleMonthTaskList) {
+        // plan work time
+        buildTaskPlanDate1(temp);
+        //actual work time
+        buildTaskActualDate1(temp);
     }
 
     //stat plan work times
-    let planWorkDays = 0;
-    if (vehicleMonthPlanWorktimeIntervalList.length > 0) {
+    function statPlanWorkTimes() {
+        let planWorkDays = 0;
         for (let timeInterval of vehicleMonthPlanWorktimeIntervalList) {
             let startTime = timeInterval.startTime;
             let endTime = timeInterval.endTime;
@@ -790,12 +596,13 @@ const calcVehicleMonthWorkTime = async function(vehicleNo, selectedMonth, vehicl
             let workDays = calcWorkTime(startTime, endTime);
             planWorkDays += workDays;
         }
+        result.planWorkDays = planWorkDays;
     }
-    result.planWorkDays = planWorkDays;
+    statPlanWorkTimes();
 
     //stat actual work times
-    let actualWorkDays = 0;
-    if (vehicleMonthActualWorktimeIntervalList.length > 0) {
+    function statActualWorkTimes() {
+        let actualWorkDays = 0;
         for (let timeInterval of vehicleMonthActualWorktimeIntervalList) {
             let startTime = timeInterval.startTime;
             let endTime = timeInterval.endTime;
@@ -808,8 +615,9 @@ const calcVehicleMonthWorkTime = async function(vehicleNo, selectedMonth, vehicl
             let workDays = calcWorkTime(startTime, endTime);
             actualWorkDays += workDays;
         }
+        result.actualWorkDays = actualWorkDays;
     }
-    result.actualWorkDays = actualWorkDays;
+    statActualWorkTimes();
 
     return result;
 }
@@ -830,19 +638,146 @@ const calcWorkTime = function(startTime, endTime) {
         if (startAm != endAm) {
             workDays = 1;
         }
-    } else if (diffDays == 1) {
-        let startTimeWorkDays = (startAm == 'am' ? 1 : 0.5);
-        let endTimeWorkDays = (endAm == 'am' ? 0.5 : 1);
-
-        workDays = startTimeWorkDays + endTimeWorkDays;
     } else {
         let startTimeWorkDays = (startAm == 'am' ? 1 : 0.5);
         let endTimeWorkDays = (endAm == 'am' ? 0.5 : 1);
-
-        workDays = startTimeWorkDays + endTimeWorkDays + (diffDays - 1);
+        if (diffDays == 1) {
+            workDays = startTimeWorkDays + endTimeWorkDays;
+        } else {
+            workDays = startTimeWorkDays + endTimeWorkDays + (diffDays - 1);
+        }
     }
 
     return workDays;
+}
+
+function processHotoOutDate(hotoOutDaysResult, monthStartTimeLong, monthEndTimeLong) {
+    for (let temp of hotoOutDaysResult) {
+        if (Number(moment(temp.startDateTime).format('H')) < 12) {
+            temp.startDateTime = moment(temp.startDateTime).format('YYYY-MM-DD') + ' 00:00:00';
+        } else {
+            temp.startDateTime = moment(temp.startDateTime).format('YYYY-MM-DD') + ' 12:00:00';
+        }
+        if (Number(moment(temp.endDateTime).format('H')) < 12) {
+            temp.endDateTime = moment(temp.endDateTime).format('YYYY-MM-DD') + ' 11:59:59';
+        } else {
+            temp.endDateTime = moment(temp.endDateTime).format('YYYY-MM-DD') + ' 23:59:59';
+        }
+
+        let hotoStartTimeLong = moment(temp.startDateTime).format('YYYYMMDDHHmmss');
+        if (monthStartTimeLong > hotoStartTimeLong) {
+            temp.startDateTime = selectedMonth+'-01 00:00:00';
+        }
+        let hotoEndTimeLong = moment(temp.endDateTime).format('YYYYMMDDHHmmss');
+        if (monthEndTimeLong < hotoEndTimeLong) {
+            temp.endDateTime = moment(selectedMonth+'-01 00:00:00', 'YYYY-MM-DD HH:mm:ss').add(1, 'months').add(-1, 'seconds').format('YYYY-MM-DD HH:mm:ss');
+        }
+    }
+}
+
+function splitHotoOutDate(hotoOutDaysResult, monthRestDayStrs, monthEndDayStr) {
+    let newHotoDaysList = [];
+    for (let temp of hotoOutDaysResult) {
+        let startDayStr = moment(temp.startDateTime).format('YYYYMMDD');
+        let endDayStr = moment(temp.endDateTime).format('YYYYMMDD');
+        if (endDayStr > monthEndDayStr) {
+            endDayStr = monthEndDayStr
+        }
+
+        let diffDays = Number(endDayStr) - Number(startDayStr);
+        let index = 0;
+        while (index <= diffDays) {
+            let hotoDayStr = moment(temp.startDateTime).add(index, 'days').format('YYYY-MM-DD');
+            if (monthRestDayStrs.indexOf(hotoDayStr) != -1) {
+                index++;
+                continue;
+            }
+
+            let hotoDay = {startDateTime: hotoDayStr + ' 00:00:00', endDateTime: hotoDayStr + ' 23:59:59'};
+            if (index == 0) {
+                hotoDay.startDateTime = temp.startDateTime;
+            }
+            if (index >= (diffDays - 1)) {
+                hotoDay.endDateTime = temp.endDateTime;
+            }
+            newHotoDaysList.push(hotoDay);
+            index++;
+        }
+    }
+    return newHotoDaysList;
+}
+
+function mergeHotoOutDate(newHotoDaysList) {
+    let hotoOutIntervalList = [];
+    for (let temp of newHotoDaysList) {
+        let tempStartTimeLong = Number(moment(temp.startDateTime).format('YYYYMMDDHHmmss'));
+        let tempEndTimeLong = Number(moment(temp.endDateTime).format('YYYYMMDDHHmmss'));
+
+        if (hotoOutIntervalList.length > 0) {
+            let preLeave = hotoOutIntervalList[hotoOutIntervalList.length - 1];
+            if (tempStartTimeLong < preLeave.endTime) {
+                if (tempEndTimeLong > preLeave.endTime) {
+                    preLeave.endTime = tempEndTimeLong;
+                }
+            } else {
+                hotoOutIntervalList.push({
+                    startTime: tempStartTimeLong,
+                    endTime: tempEndTimeLong
+                });
+            }
+        } else {
+            hotoOutIntervalList.push({
+                startTime: tempStartTimeLong,
+                endTime: tempEndTimeLong
+            });
+        }
+    }
+    return hotoOutIntervalList;
+}
+
+function calcHotoOutDays(hotoOutIntervalList) {
+    let hotoOutDays = 0;
+    for (let timeInterval of hotoOutIntervalList) {
+        let startTime = timeInterval.startTime;
+        let endTime = timeInterval.endTime;
+        if (startTime < monthStartTimeLong) {
+            startTime = monthStartTimeLong;
+        }
+        if (endTime > monthEndTimeLong) {
+            endTime = monthEndTimeLong;
+        }
+        let tempHotoOutDays = calcWorkTime(startTime, endTime);
+        hotoOutDays += tempHotoOutDays;
+    }
+    return hotoOutDays;
+}
+
+function buildTaskPlanDate(task) {
+    if (Number(moment(task.indentStartTime).format('H')) < 12) {
+        task.indentStartTime = moment(task.indentStartTime).format('YYYY-MM-DD') + ' 00:00:00';
+    } else {
+        task.indentStartTime = moment(task.indentStartTime).format('YYYY-MM-DD') + ' 12:00:00';
+    }
+    if (Number(moment(task.indentEndTime).format('H')) < 12) {
+        task.indentEndTime = moment(task.indentEndTime).format('YYYY-MM-DD') + ' 11:59:59';
+    } else {
+        task.indentEndTime = moment(task.indentEndTime).format('YYYY-MM-DD') + ' 23:59:59';
+    }
+}
+
+function buildTaskActualDate(task) {
+    if (task.mobileStartTime && task.mobileEndTime) {
+        if (Number(moment(task.mobileStartTime).format('H')) < 12) {
+            task.mobileStartTime = moment(task.mobileStartTime).format('YYYY-MM-DD') + ' 00:00:00';
+        } else {
+            task.mobileStartTime = moment(task.mobileStartTime).format('YYYY-MM-DD') + ' 12:00:00';
+        }
+        if (Number(moment(task.mobileEndTime).format('H')) < 12) {
+            task.mobileEndTime = moment(task.mobileEndTime).format('YYYY-MM-DD') + ' 11:59:59';
+        } else {
+            task.mobileEndTime = moment(task.mobileEndTime).format('YYYY-MM-DD') + ' 23:59:59';
+        }
+    }
 }
 
 

@@ -42,23 +42,27 @@ const startCalc = async function() {
 const calcDriverLicenseInfo = async function(driverInfo) {
 	let errorMsg = '';
 	try {
-        if (driverInfo) {
-            let checkEnlistmentDateErrorMsg = await checkEnlistmentDate(driverInfo);
-            let checkAgeErrorMsg = '';//await checkAge(driverInfo);
-            let checkDemeritPointsResult = await checkDemeritPoints(driverInfo);
-            let checkDemeritPointsErrorMsg = checkDemeritPointsResult.errorMsg;
+        if(!driverInfo) {
+            return 'driver does not exist.'
+        }
+        let checkEnlistmentDateErrorMsg = await checkEnlistmentDate(driverInfo);
+        let checkAgeErrorMsg = '';//await checkAge(driverInfo);
+        let checkDemeritPointsResult = await checkDemeritPoints(driverInfo);
+        let checkDemeritPointsErrorMsg = checkDemeritPointsResult.errorMsg;
 
-            errorMsg = (checkEnlistmentDateErrorMsg ?? '') + (checkAgeErrorMsg ?? '') + (checkDemeritPointsErrorMsg ?? '')
-            if (!errorMsg) {
-                //{permitType: 'CL 3', allType: ['CL 3', 'CL 3B', 'CL 3BNX']}
-                let driverPermits = [];
+        errorMsg = (checkEnlistmentDateErrorMsg || '') + checkAgeErrorMsg + (checkDemeritPointsErrorMsg || '')
+        if (!errorMsg) {
+            //{permitType: 'CL 3', allType: ['CL 3', 'CL 3B', 'CL 3BNX']}
+            let driverPermits = [];
+            let permitTypes = [];
+            const initPermitTypes = async function (){
                 let driverPermitTypeConfList = await sequelizeObj.query(`
                     SELECT
                         dm.permitType
                     FROM driver_permittype_detail dm
                     where dm.driverId=? ORDER BY dm.permitType asc
                 `, { type: QueryTypes.SELECT, replacements: [ driverInfo.driverId ] });
-                let permitTypes = driverPermitTypeConfList ? driverPermitTypeConfList.map(item => item.permitType) : [];
+                if(driverPermitTypeConfList) permitTypes = driverPermitTypeConfList.map(item => item.permitType)
                 if (permitTypes) {
                     for (let temp of permitTypes) {
                         let permitTypeConf = await PermitType.findOne({ where: { permitType : temp} });
@@ -75,13 +79,17 @@ const calcDriverLicenseInfo = async function(driverInfo) {
                     }
                 }
                 permitTypes = driverPermits.map(item => item.permitType);
+            }
+            await initPermitTypes()
 
-                for (let permitType of permitTypes) {
-                    if (permitType.toLowerCase().startsWith('cl 2')) {
-                        continue;
-                    }
+
+            for (let permitType of permitTypes) {
+                if (permitType.toLowerCase().startsWith('cl 2')) {
+                    continue;
+                }
+
+                const initPendingApprovalData = async function (){
                     let applyRecord = await DriverLicenseExchangeApply.findOne({where: {driverId: driverInfo.driverId, permitType: permitType}});
-
                     if (!applyRecord || applyRecord.status == 'Pending Approval') {
                         let driverPermitObj = driverPermits.find(item => item.permitType == permitType);
                         let allType = [permitType.toLowerCase()];
@@ -92,46 +100,50 @@ const calcDriverLicenseInfo = async function(driverInfo) {
                         let checkTotalMileageErrorMsg = checkTotalMileageResult.errorMsg;
 
                         errorMsg = checkTotalMileageErrorMsg;
-                        if (!errorMsg) {
-                            if (!applyRecord) {
-                                //create driver permit exchange apply
-                                await DriverLicenseExchangeApply.create({
-                                    driverId: driverInfo.driverId,
-                                    driverName: driverInfo.driverName,
-                                    nric: driverInfo.nric, 
-                                    permitType: permitType,
-                                    permitTypeMileage: checkTotalMileageResult.mileageStr,
-                                    enlistmentDate: driverInfo.enlistmentDate,
-                                    birthday: driverInfo.birthday,
-                                    emailConfirm: driverInfo.email,
-                                    driverDemeritPoints: checkDemeritPointsResult.demeritPoints,
-                                    permitTypeDemeritPoints: 0,
-                                    applyDate: moment(),
-                                    creator: 1
-                                });
-                            } else if (applyRecord.status == 'Pending Approval') {
-                                await DriverLicenseExchangeApply.update({
-                                    permitTypeMileage: checkTotalMileageResult.mileageStr,
-                                    enlistmentDate: driverInfo.enlistmentDate,
-                                    birthday: driverInfo.birthday,
-                                    driverDemeritPoints: checkDemeritPointsResult.demeritPoints,
-                                    permitTypeDemeritPoints: 0,
-                                    applyDate: moment(),
-                                    emailConfirm: driverInfo.email,
-                                    updateAt: moment()
-                                }, {where: {applyId: applyRecord.applyId}});
+                        const initDriverLicenseExchangeApply = async function (){
+                            if (!errorMsg) {
+                                if (!applyRecord) {
+                                    //create driver permit exchange apply
+                                    await DriverLicenseExchangeApply.create({
+                                        driverId: driverInfo.driverId,
+                                        driverName: driverInfo.driverName,
+                                        nric: driverInfo.nric, 
+                                        permitType: permitType,
+                                        permitTypeMileage: checkTotalMileageResult.mileageStr,
+                                        enlistmentDate: driverInfo.enlistmentDate,
+                                        birthday: driverInfo.birthday,
+                                        emailConfirm: driverInfo.email,
+                                        driverDemeritPoints: checkDemeritPointsResult.demeritPoints,
+                                        permitTypeDemeritPoints: 0,
+                                        applyDate: moment(),
+                                        creator: 1
+                                    });
+                                } else if (applyRecord.status == 'Pending Approval') {
+                                    await DriverLicenseExchangeApply.update({
+                                        permitTypeMileage: checkTotalMileageResult.mileageStr,
+                                        enlistmentDate: driverInfo.enlistmentDate,
+                                        birthday: driverInfo.birthday,
+                                        driverDemeritPoints: checkDemeritPointsResult.demeritPoints,
+                                        permitTypeDemeritPoints: 0,
+                                        applyDate: moment(),
+                                        emailConfirm: driverInfo.email,
+                                        updateAt: moment()
+                                    }, {where: {applyId: applyRecord.applyId}});
+                                } else {
+                                    
+                                }
+                                log.info(`Driver[${driverInfo.driverId}] permit:${permitType} apply exchange permit!`);
                             } else {
-                                
+                                log.info(`Driver[${driverInfo.driverId}] permit:${permitType} can't apply exchange permit: ${errorMsg}`);
                             }
-                            log.info(`Driver[${driverInfo.driverId}] permit:${permitType} apply exchange permit!`);
-                        } else {
-                            log.info(`Driver[${driverInfo.driverId}] permit:${permitType} can't apply exchange permit: ${errorMsg}`);
                         }
+                        await initDriverLicenseExchangeApply()
                     }
                 }
-            } else {
-                log.info(`Driver[${driverInfo.driverId}] can't conversion any license: ${errorMsg}`);
+                await initPendingApprovalData()
             }
+        } else {
+            log.info(`Driver[${driverInfo.driverId}] can't conversion any license: ${errorMsg}`);
         }
 	} catch (error) {
 		log.error(error);
@@ -144,55 +156,68 @@ const calcDriverLicenseInfo = async function(driverInfo) {
 const calcDriverCivilianLicenseInfo = async function(driverInfo) {
 	let errorMsg = '';
 	try {
-        if (driverInfo) {
-            let checkDemeritPointsResult = await checkDemeritPoints(driverInfo);
-            let checkDemeritPointsErrorMsg = checkDemeritPointsResult.errorMsg;
+        if(!driverInfo) {
+            throw 'driver does not exist.'
+        }
+        let checkDemeritPointsResult = await checkDemeritPoints(driverInfo);
+        let checkDemeritPointsErrorMsg = checkDemeritPointsResult.errorMsg;
 
-            errorMsg = checkDemeritPointsErrorMsg ?? ''
-            if (!errorMsg) {
-                let mileageArray = await getDriverMileageStatInfo(driverInfo.driverId);
-                log.info(`calcDriverCivilianLicenseInfo driverId:${driverInfo.driverId}, mileage: ${ JSON.stringify(mileageArray)}`)
-                let cl2MileageObj = mileageArray.find(item => item.permitType && item.permitType.toLowerCase() == 'cl 2');
-                let cl2BMileageObj = mileageArray.find(item => item.permitType && item.permitType.toLowerCase() == 'cl 2b');
-                if (!cl2MileageObj && !cl2BMileageObj) {
-                    return;
-                }
-                let cl2Mileage = cl2MileageObj ? cl2MileageObj.totalMileage : 0;
-                let cl2BMileage = cl2BMileageObj ? cl2BMileageObj.totalMileage : 0;
+        errorMsg = checkDemeritPointsErrorMsg || ''
+        if (!errorMsg) {
+            let mileageArray = await getDriverMileageStatInfo(driverInfo.driverId);
+            log.info(`calcDriverCivilianLicenseInfo driverId:${driverInfo.driverId}, mileage: ${ JSON.stringify(mileageArray)}`)
+            let cl2MileageObj = mileageArray.find(item => item.permitType && item.permitType.toLowerCase() == 'cl 2');
+            let cl2BMileageObj = mileageArray.find(item => item.permitType && item.permitType.toLowerCase() == 'cl 2b');
+            if (!cl2MileageObj && !cl2BMileageObj) {
+                return;
+            }
+            let cl2Mileage = cl2MileageObj ? cl2MileageObj.totalMileage : 0;
+            let cl2BMileage = cl2BMileageObj ? cl2BMileageObj.totalMileage : 0;
 
-                //query driver effictive civilianLicense conf
-                let effectiveIssueDateStr = moment().add(-1, 'year').format("YYYY-MM-DD");
-                let driverEffectiveCivilianLicenseList = await sequelizeObj.query(`
-                    SELECT
-                        cl.driverId, cl.civilianLicence, cl.dateOfIssue, cl.status
-                    FROM driver_civilian_licence cl
-                    WHERE cl.driverId =? and cl.status='Approved' AND DATE_FORMAT(cl.dateOfIssue, '%Y-%m-%d') < ?
-                `, { type: QueryTypes.SELECT, replacements: [ driverInfo.driverId, effectiveIssueDateStr ] });
-                //need exchange civilian license
-                let exchangeCivilianLicenses = [];
-                if (cl2Mileage >= 4000) {
-                    if (driverEffectiveCivilianLicenseList && driverEffectiveCivilianLicenseList.length > 0) {
-                        for (let temp of driverEffectiveCivilianLicenseList) {
-                            if (temp.civilianLicence && temp.civilianLicence.toLowerCase() == 'cl 2b') {
-                                exchangeCivilianLicenses.push({permitType: 'CL 2A', mileageStr: 'CL 2:' + cl2Mileage + ";"});
-                            } else if (temp.civilianLicence && temp.civilianLicence.toLowerCase() == 'cl 2a') {
-                                exchangeCivilianLicenses.push({permitType: 'CL 2', mileageStr: 'CL 2:' + cl2Mileage + ";"});
+            //query driver effictive civilianLicense conf
+            let effectiveIssueDateStr = moment().add(-1, 'year').format("YYYY-MM-DD");
+            let driverEffectiveCivilianLicenseList = await sequelizeObj.query(`
+                SELECT
+                    cl.driverId, cl.civilianLicence, cl.dateOfIssue, cl.status
+                FROM driver_civilian_licence cl
+                WHERE cl.driverId =? and cl.status='Approved' AND DATE_FORMAT(cl.dateOfIssue, '%Y-%m-%d') < ?
+            `, { type: QueryTypes.SELECT, replacements: [ driverInfo.driverId, effectiveIssueDateStr ] });
+            //need exchange civilian license
+            let exchangeCivilianLicenses = [];
+            const initExchangeCivilianLicenses = function () {
+                const initCL2ACivlianLicenses = function (){
+                    if (cl2Mileage >= 4000) {
+                        if (driverEffectiveCivilianLicenseList && driverEffectiveCivilianLicenseList.length > 0) {
+                            for (let temp of driverEffectiveCivilianLicenseList) {
+                                if (temp.civilianLicence && temp.civilianLicence.toLowerCase() == 'cl 2b') {
+                                    exchangeCivilianLicenses.push({permitType: 'CL 2A', mileageStr: 'CL 2:' + cl2Mileage + ";"});
+                                } else if (temp.civilianLicence && temp.civilianLicence.toLowerCase() == 'cl 2a') {
+                                    exchangeCivilianLicenses.push({permitType: 'CL 2', mileageStr: 'CL 2:' + cl2Mileage + ";"});
+                                }
                             }
+                        } else {
+                            exchangeCivilianLicenses.push({permitType: 'CL 2B', mileageStr: 'CL 2:' + cl2Mileage + ";"});
                         }
-                    } else {
-                        exchangeCivilianLicenses.push({permitType: 'CL 2B', mileageStr: 'CL 2:' + cl2Mileage + ";"});
                     }
                 }
-                let cl2bTemp = exchangeCivilianLicenses.find(item => item.permitType == 'CL 2B');
-                if (!cl2bTemp) {
-                    if (cl2BMileage >= 4000 && (driverEffectiveCivilianLicenseList == null || driverEffectiveCivilianLicenseList.length == 0)) {
-                        exchangeCivilianLicenses.push({permitType: 'CL 2B', mileageStr: 'CL 2B:' + cl2BMileage + ";"});
+                initCL2ACivlianLicenses()
+
+                const initCL2BCivlianLicenses = function () {
+                    let cl2bTemp = exchangeCivilianLicenses.find(item => item.permitType == 'CL 2B');
+                    if (!cl2bTemp) {
+                        if (cl2BMileage >= 4000 && (driverEffectiveCivilianLicenseList == null || driverEffectiveCivilianLicenseList.length == 0)) {
+                            exchangeCivilianLicenses.push({permitType: 'CL 2B', mileageStr: 'CL 2B:' + cl2BMileage + ";"});
+                        }
+                    }
+                    if (exchangeCivilianLicenses.length == 0) {
+                        log.info(`Driver[${driverInfo.driverId}] calcDriverCivilianLicenseInfo: no civilian license can exchange, cl 2 mileage: ${cl2Mileage}, cl 2b mileage: ${cl2BMileage}`);
                     }
                 }
-                if (exchangeCivilianLicenses.length == 0) {
-                    log.info(`Driver[${driverInfo.driverId}] calcDriverCivilianLicenseInfo: no civilian license can exchange, cl 2 mileage: ${cl2Mileage}, cl 2b mileage: ${cl2BMileage}`);
-                }
-                
+                initCL2BCivlianLicenses()
+            }
+            initExchangeCivilianLicenses()
+            
+            const initDriverLicenseExchangeApply = async function (){
                 for (let civilianLicense of exchangeCivilianLicenses) {
                     let applyRecord = await DriverLicenseExchangeApply.findOne({where: {driverId: driverInfo.driverId, permitType: civilianLicense.permitType }});
                     if (!applyRecord || applyRecord.status == 'Pending Approval') {
@@ -229,9 +254,10 @@ const calcDriverCivilianLicenseInfo = async function(driverInfo) {
                         log.info(`Driver[${driverInfo.driverId}] permit:${civilianLicense.permitType} apply exchange permit!`);
                     }
                 }
-            } else {
-                log.info(`Driver[${driverInfo.driverId}] can't conversion any license: ${errorMsg}`);
             }
+            await initDriverLicenseExchangeApply()
+        } else {
+            log.info(`Driver[${driverInfo.driverId}] can't conversion any license: ${errorMsg}`);
         }
 	} catch (error) {
 		log.error(error);
@@ -306,56 +332,68 @@ const checkTotalMileage = async function(driverInfo, permitType, allPermitTypes)
             where dm.driverId=? ORDER BY dm.permitType asc
         `, { type: QueryTypes.SELECT, replacements: [ driverInfo.driverId ] });
 
-        for (let driverBaseMileageStat of driverBaseMileageStatList) {
-            let permitTypeBaseMileage = driverBaseMileageStat.baseMileage ? driverBaseMileageStat.baseMileage : 0;
-
-            let driverPermitTypeTaskMileage = driverTaskPermitMileages.find(item => item.permitType == driverBaseMileageStat.permitType);
-            let taskMileage = driverPermitTypeTaskMileage && driverPermitTypeTaskMileage.taskMileage ? driverPermitTypeTaskMileage.taskMileage : 0;
-
-            let permitTypeTotalMileage = permitTypeBaseMileage + taskMileage;
-            driverPermitMileages.push({permitType: driverBaseMileageStat.permitType, mileage: permitTypeTotalMileage});
+        const initDriverPermitMileages = function () {
+            for (let driverBaseMileageStat of driverBaseMileageStatList) {
+                let permitTypeBaseMileage = driverBaseMileageStat.baseMileage ? driverBaseMileageStat.baseMileage : 0;
+    
+                let driverPermitTypeTaskMileage = driverTaskPermitMileages.find(item => item.permitType == driverBaseMileageStat.permitType);
+                let taskMileage = driverPermitTypeTaskMileage && driverPermitTypeTaskMileage.taskMileage ? driverPermitTypeTaskMileage.taskMileage : 0;
+    
+                let permitTypeTotalMileage = permitTypeBaseMileage + taskMileage;
+                driverPermitMileages.push({permitType: driverBaseMileageStat.permitType, mileage: permitTypeTotalMileage});
+            }
         }
+        initDriverPermitMileages()
  
         if (driverPermitMileages && driverPermitMileages.length > 0) {
             if (permitType.toLowerCase() == 'cl 3' || permitType.toLowerCase() == 'cl 4') {
                 let cl3Mileage = 0;
                 let cl4Mileage = 0;
                 let mileageStr = '';
-                for (let permitMileage of driverPermitMileages) {
-                    if (allPermitTypes.includes(permitMileage.permitType.toLowerCase())) {
-                        if (permitType.toLowerCase() == 'cl 3') {
-                            cl3Mileage += (permitMileage.mileage ? permitMileage.mileage : 0);
-                        } else if (permitType.toLowerCase() == 'cl 4') {
-                            cl4Mileage += (permitMileage.mileage ? permitMileage.mileage : 0);
+                const initMileageStr = function (){
+                    for (let permitMileage of driverPermitMileages) {
+                        if (allPermitTypes.includes(permitMileage.permitType.toLowerCase())) {
+                            if (permitType.toLowerCase() == 'cl 3') {
+                                cl3Mileage += (permitMileage.mileage || 0);
+                            } else if (permitType.toLowerCase() == 'cl 4') {
+                                cl4Mileage += (permitMileage.mileage || 0);
+                            }
+    
+                            mileageStr += permitMileage.permitType.toUpperCase() + ':' + (permitMileage.mileage || 0) + ';';
                         }
-
-                        mileageStr += permitMileage.permitType.toUpperCase() + ':' + (permitMileage.mileage ? permitMileage.mileage : 0) + ';';
                     }
                 }
+                initMileageStr()
                 result.mileageStr = 'CL 3:' + cl3Mileage + ';CL 4:' + cl4Mileage + ';';
-                if (permitType.toLowerCase() == 'cl 3') {
-                    if ((cl3Mileage + cl4Mileage) < 4000) {
-                        result.errorMsg = `Driver permit[${permitType}] mileage is cl 3:${cl3Mileage}, cl 4: ${cl4Mileage}, less than 4000km!`
+                const initResultErrorMsg = function () {
+                    if (permitType.toLowerCase() == 'cl 3') {
+                        if ((cl3Mileage + cl4Mileage) < 4000) {
+                            result.errorMsg = `Driver permit[${permitType}] mileage is cl 3:${cl3Mileage}, cl 4: ${cl4Mileage}, less than 4000km!`
+                        }
+                    }
+                    if (permitType.toLowerCase() == 'cl 4') {
+                        if ((cl3Mileage + cl4Mileage) < 4000 || cl4Mileage < 2000) {
+                            result.errorMsg = `Driver permit[${permitType}] mileage is cl 3:${cl3Mileage}, , cl 4: ${cl4Mileage}, total less than 4000km or cl4 less than 2000!`
+                        }
                     }
                 }
-                if (permitType.toLowerCase() == 'cl 4') {
-                    if ((cl3Mileage + cl4Mileage) < 4000 || cl4Mileage < 2000) {
-                        result.errorMsg = `Driver permit[${permitType}] mileage is cl 3:${cl3Mileage}, , cl 4: ${cl4Mileage}, total less than 4000km or cl4 less than 2000!`
-                    }
-                }
+                initResultErrorMsg()
             } else {
-                let perimtMileage = 0;
-                let mileageStr = '';
-                for (let permitMileage of driverPermitMileages) {
-                    if (allPermitTypes.includes(permitMileage.permitType.toLowerCase())) {
-                        perimtMileage += (permitMileage.mileage ? permitMileage.mileage : 0);
-                        mileageStr += permitMileage.permitType.toUpperCase() + ':' + (permitMileage.mileage ? permitMileage.mileage : 0) + ';';
+                const initOtherResultMileageStr = function (){
+                    let perimtMileage = 0;
+                    let mileageStr = '';
+                    for (let permitMileage of driverPermitMileages) {
+                        if (allPermitTypes.includes(permitMileage.permitType.toLowerCase())) {
+                            perimtMileage += (permitMileage.mileage ? permitMileage.mileage : 0);
+                            mileageStr += permitMileage.permitType.toUpperCase() + ':' + (permitMileage.mileage ? permitMileage.mileage : 0) + ';';
+                        }
                     }
+                    if (perimtMileage < 4000) {
+                        result.errorMsg = `Driver permit[${permitType}] mileage is ${perimtMileage}, less than 4000km!`
+                    }
+                    result.mileageStr = mileageStr;
                 }
-                if (perimtMileage < 4000) {
-                    result.errorMsg = `Driver permit[${permitType}] mileage is ${perimtMileage}, less than 4000km!`
-                }
-                result.mileageStr = mileageStr;
+                initOtherResultMileageStr()
             }
         } else {
             result.errorMsg = 'Driver permit mileage is null!'
@@ -422,33 +460,36 @@ const getDriverMileageStatInfo = async function (driverId) {
         for (let permitTypeMileage of driverMileageStatList) {
             permitTypes.add(permitTypeMileage.permitType);
         }
-        for (let permitType of permitTypes) {
-            let driverPermitTypeTaskMileage = driverPermitTaskMileageList.find(item => item.permitType == permitType);
-            let driverPermitTypeBaseMileage = driverMileageStatList.find(item => item.permitType == permitType);
-
-            let totalMileage = 0;
-            if (driverPermitTypeTaskMileage) {
-                totalMileage += driverPermitTypeTaskMileage.permitMileage ? driverPermitTypeTaskMileage.permitMileage : 0;
-            }
-            if (driverPermitTypeBaseMileage) {
-                totalMileage += driverPermitTypeBaseMileage.baseMileage ? driverPermitTypeBaseMileage.baseMileage : 0;
-            }
-
-            let permitTypeConf = await PermitType.findOne({ where: { permitType : permitType} });
-            if (permitTypeConf && permitTypeConf.parent) {
-                let parentPermitType = permitTypeConf.parent;
-                let parentMileageObj = statResult.find(item => item.permitType == parentPermitType);
-                if (parentMileageObj) {
-                    parentMileageObj.totalMileage += totalMileage;
-                    continue;
-                } else {
-                    permitType = parentPermitType;
-                    permitTypeConf = await PermitType.findOne({ where: { permitType : permitType} });
+        const initStatResult = async function (){
+            for (let permitType of permitTypes) {
+                let driverPermitTypeTaskMileage = driverPermitTaskMileageList.find(item => item.permitType == permitType);
+                let driverPermitTypeBaseMileage = driverMileageStatList.find(item => item.permitType == permitType);
+    
+                let totalMileage = 0;
+                if (driverPermitTypeTaskMileage) {
+                    totalMileage += driverPermitTypeTaskMileage.permitMileage || 0;
                 }
+                if (driverPermitTypeBaseMileage) {
+                    totalMileage += driverPermitTypeBaseMileage.baseMileage || 0;
+                }
+    
+                let permitTypeConf = await PermitType.findOne({ where: { permitType : permitType} });
+                if (permitTypeConf && permitTypeConf.parent) {
+                    let parentPermitType = permitTypeConf.parent;
+                    let parentMileageObj = statResult.find(item => item.permitType == parentPermitType);
+                    if (parentMileageObj) {
+                        parentMileageObj.totalMileage += totalMileage;
+                        continue;
+                    } else {
+                        permitType = parentPermitType;
+                        permitTypeConf = await PermitType.findOne({ where: { permitType : permitType} });
+                    }
+                }
+    
+                statResult.push({permitType: permitType, totalMileage: totalMileage});
             }
-
-            statResult.push({permitType: permitType, totalMileage: totalMileage});
         }
+        await initStatResult()
         return statResult;
     } catch (err) {
         log.error(err);

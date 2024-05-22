@@ -53,21 +53,25 @@ const startCalc = async function() {
             let driverTaskMileage = 0;
             let driverTaskHours = 0;
             let driverPlatformTrained = 0;
-            if (driverTaskNum > 0) {
-                for (let task of drvierTaskList) {
-                    // WPT task doesn't count
-                    if (task.purpose && task.purpose.toLowerCase() != 'wpt') {
-                        driverTaskMileage += task.mileageTraveled ? task.mileageTraveled : 0;
-                    }
-
-                    // feedback rating above 4 and no sos incident
-                    //if (task.starVal && task.starVal >= 4 && !task.incidentId) {
-                    if (!task.incidentId) {
-                        let taskMinutes = moment(task.endTime).diff(moment(task.startTime), 'minute');
-                        driverTaskHours += taskMinutes / 60;
+            const initDriverTaskMileageAndDriverTaskHours = function (){
+                if (driverTaskNum > 0) {
+                    for (let task of drvierTaskList) {
+                        // WPT task doesn't count
+                        if (task.purpose && task.purpose.toLowerCase() != 'wpt') {
+                            driverTaskMileage += task.mileageTraveled ? task.mileageTraveled : 0;
+                        }
+    
+                        // feedback rating above 4 and no sos incident
+                        //if (task.starVal && task.starVal >= 4 && !task.incidentId) {
+                        if (!task.incidentId) {
+                            let taskMinutes = moment(task.endTime).diff(moment(task.startTime), 'minute');
+                            driverTaskHours += taskMinutes / 60;
+                        }
                     }
                 }
             }
+            initDriverTaskMileageAndDriverTaskHours()
+
             if (drvierPlatformNum) {
                 driverPlatformTrained = drvierPlatformNum.platformNum
             }
@@ -87,7 +91,6 @@ const startCalc = async function() {
 
         if (driverMonthAchievementArray.length > 0) {
             await DriverMonthAchievement.bulkCreate(driverMonthAchievementArray, { updateOnDuplicate: ['platformsTrained', 'totalMileage', 'taskNum', 'taskPerfectHours'] });
-            driverMonthAchievementArray = [];
         }
 
     } catch (error) {

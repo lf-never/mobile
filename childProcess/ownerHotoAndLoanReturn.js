@@ -90,12 +90,18 @@ let TaskUtils = {
             let requestIdList = data.map(item => item.requestId)
             requestIdList = Array.from(new Set(requestIdList))
             for(let item of data){
-                let state = await TaskUtils.verifyDriverOrVehicleByDate(item.vehicleNo ? item.vehicleNo : null, item.driverId ? item.driverId : null, moment(item.hostStartDate).format('YYYY-MM-DD HH:mm:ss'), moment(item.hostEndDate).format('YYYY-MM-DD HH:mm:ss'))
-                let state3 = await TaskUtils.verifyUrgentDriverOrVehicleByDate(item.vehicleNo ? item.vehicleNo : null, item.driverId ? item.driverId : null, moment(item.hostStartDate).format('YYYY-MM-DD HH:mm:ss'), moment(item.hostEndDate).format('YYYY-MM-DD HH:mm:ss'))
-                let state2 = await TaskUtils.getLoanOutDriverOrVehicle(item.vehicleNo ? item.vehicleNo : null, item.driverId ? item.driverId : null, moment(item.hostStartDate).format('YYYY-MM-DD HH:mm:ss'), moment(item.hostEndDate).format('YYYY-MM-DD HH:mm:ss'))
+                let __itemVehicleNo = item.vehicleNo || null;
+                let __itemDriverId = item.driverId || null;
+                let state = await TaskUtils.verifyDriverOrVehicleByDate(__itemVehicleNo, __itemDriverId, moment(item.hostStartDate).format('YYYY-MM-DD HH:mm:ss'), moment(item.hostEndDate).format('YYYY-MM-DD HH:mm:ss'))
+                let state3 = await TaskUtils.verifyUrgentDriverOrVehicleByDate(__itemVehicleNo, __itemDriverId, moment(item.hostStartDate).format('YYYY-MM-DD HH:mm:ss'), moment(item.hostEndDate).format('YYYY-MM-DD HH:mm:ss'))
+                let state2 = await TaskUtils.getLoanOutDriverOrVehicle(__itemVehicleNo, __itemDriverId, moment(item.hostStartDate).format('YYYY-MM-DD HH:mm:ss'), moment(item.hostEndDate).format('YYYY-MM-DD HH:mm:ss'))
                 if(state.length > 0 || state2 || state3.length > 0){
-                    if(state.length > 0 || state3.length > 0) if(item.vehicleNo || item.driverId) log.warn(` The ${ item.vehicleNo ? `vehicle(vehicleNo:${ item.vehicleNo })` : `driver(driverID:${ item.driverId })` } has unfinished business.`)
-                    if(state2) if(item.vehicleNo || item.driverId) log.warn(` The ${ item.vehicleNo ? `vehicle(vehicleNo:${ item.vehicleNo })` : `driver(driverID:${ item.driverId })` } has been loaned out.`)
+                    const initErrorLog = function (){
+                        let __stateReName = item.vehicleNo ? `vehicle(vehicleNo:${ item.vehicleNo })` : `driver(driverID:${ item.driverId })`
+                        if(state.length > 0 || state3.length > 0) if(item.vehicleNo || item.driverId) log.warn(` The ${ __stateReName } has unfinished business.`)
+                        if(state2) if(item.vehicleNo || item.driverId) log.warn(` The ${ __stateReName } has been loaned out.`)
+                    }
+                    initErrorLog()
                 } else {
                     let hotoItem = await HOTO.findOne({ where: { id: item.id } });
                     await HOTO.destroy({ where: { id: item.id } });
@@ -115,45 +121,51 @@ let TaskUtils = {
                         createdAt: hotoItem.createdAt
                     }
                     await HOTORecord.create(obj)
-                    let remarksName = null;
-                    if(item.driverId){
-                        remarksName = 'Automatically return expired drivers.'
-                    } else {
-                        if(item.vehicleNo) remarksName = 'Automatic return of expired vehicles.'
+                    const initLogDataList = function (){
+                        let remarksName = null;
+                        if(item.driverId){
+                            remarksName = 'Automatically return expired drivers.'
+                        } else if(item.vehicleNo){
+                            remarksName = 'Automatic return of expired vehicles.'
+                        }
+                        logDataList.push({
+                            requestId: item.requestId, 
+                            dataList: item.driverId || item.vehicleNo,
+                            remarksName: remarksName
+                        })   
                     }
-                    logDataList.push({
-                        requestId: item.requestId, 
-                        dataList: item.driverId ? item.driverId : item.vehicleNo,
-                        remarksName: remarksName
-                    })                        
+                    initLogDataList()
                 }
             }
-            for(let item of requestIdList){
-                if(item && item != 'null'){
-                    let dataList = []
-                    let remarksName = null;
-                    for(let item2 of logDataList){
-                        if(item == item2.requestId) {
-                            dataList.push(item2.dataList)
-                            remarksName = item2.remarksName
+            
+            const initOperationRecord = async function (){
+                for(let item of requestIdList){
+                    if(item && item != 'null'){
+                        let dataList = []
+                        let remarksName = null;
+                        for(let item2 of logDataList){
+                            if(item == item2.requestId) {
+                                dataList.push(item2.dataList)
+                                remarksName = item2.remarksName
+                            }
                         }
-                    }
-                    if(dataList.length > 0) {
-                        let obj = {
-                            id: null,
-                            operatorId: null,
-                            businessType: 'hoto',
-                            businessId: item,
-                            optType: 'return',
-                            afterData: dataList.join(','),
-                            optTime: moment().format('YYYY-MM-DD HH:mm:ss'),
-                            remarks: remarksName
+                        if(dataList.length > 0) {
+                            let obj = {
+                                id: null,
+                                operatorId: null,
+                                businessType: 'hoto',
+                                businessId: item,
+                                optType: 'return',
+                                afterData: dataList.join(','),
+                                optTime: moment().format('YYYY-MM-DD HH:mm:ss'),
+                                remarks: remarksName
+                            }
+                            await OperationRecord.create(obj)
                         }
-                        await OperationRecord.create(obj)
                     }
                 }
             }
-           
+            await initOperationRecord()
         })
     }
 }
@@ -168,43 +180,53 @@ process.on('message', async processParams => {
         ` ,{ type: QueryTypes.SELECT });
         for(let item of loanList){
             let loanOut = await LOAN.findOne({ where: { id: item.id } })
-            let state = await TaskUtils.verifyDriverOrVehicleByDate(loanOut.vehicleNo ? loanOut.vehicleNo : null, loanOut.driverId ? loanOut.driverId : null, moment(loanOut.startDate).format('YYYY-MM-DD HH:mm:ss'), moment(loanOut.endDate).format('YYYY-MM-DD HH:mm:ss'), loanOut.groupId)
+            let state = await TaskUtils.verifyDriverOrVehicleByDate(loanOut.vehicleNo || null, loanOut.driverId || null, moment(loanOut.startDate).format('YYYY-MM-DD HH:mm:ss'), moment(loanOut.endDate).format('YYYY-MM-DD HH:mm:ss'), loanOut.groupId)
             if(state.length > 0){
-                if(state.length > 0) if(loanOut.vehicleNo || loanOut.driverId) log.warn(` loan => The ${ loanOut.vehicleNo ? `vehicle(vehicleNo:${ loanOut.vehicleNo })` : `driver(driverID:${ loanOut.driverId })` } has unfinished business.`)
+                const initLoanErrorLog = function (){
+                    if(loanOut.vehicleNo || loanOut.driverId) {
+                        log.warn(` loan => The ${ loanOut.vehicleNo ? `vehicle(vehicleNo:${ loanOut.vehicleNo })` : `driver(driverID:${ loanOut.driverId })` } has unfinished business.`)
+                    } 
+                }
+                initLoanErrorLog();
             } else {
                 await sequelizeObj.transaction(async transaction => {
-                    let newLoanRecord = {
-                        driverId: loanOut.driverId,
-                        vehicleNo: loanOut.vehicleNo,
-                        indentId: loanOut.indentId, 
-                        taskId: loanOut.taskId,
-                        startDate: loanOut.startDate,
-                        endDate: loanOut.endDate, 
-                        groupId: loanOut.groupId,
-                        returnDate: moment().format('YYYY-MM-DD HH:mm:ss'),
-                        returnBy: 0, // 2023-12-12 Used to distinguish whether it is a system operation or a user operation
-                        creator: loanOut.creator,
-                        returnRemark: null,
-                        actualStartTime: loanOut.actualStartTime,
-                        actualEndTime: loanOut.actualEndTime,
-                        unitId: loanOut.unitId,
-                        activity: loanOut.activity,
-                        purpose: loanOut.purpose,
-                        createdAt: loanOut.createdAt
-                    };
-                    await LOANRecord.create(newLoanRecord);
-                    await LOAN.destroy({ where: { id: item.id } });
-                    await OperationRecord.create({
-                        id: null,
-                        operatorId: 1,
-                        businessType: 'loan',
-                        businessId: loanOut.taskId,
-                        optType: 'return loan',
-                        beforeData: `${ loanOut.driverId && loanOut.driverId != '' ? `driverId:${ loanOut.driverId },` : '' }${ loanOut.vehicleNo && loanOut.vehicleNo != '' ? `vehicleNo:${ loanOut.vehicleNo }` : '' }`,
-                        afterData: `${ loanOut.driverId && loanOut.driverId != '' ? `driverId:${ loanOut.driverId },` : '' }${ loanOut.vehicleNo && loanOut.vehicleNo != '' ? `vehicleNo:${ loanOut.vehicleNo }` : '' }`,
-                        optTime: moment().format('YYYY-MM-DD HH:mm:ss'),
-                        remarks: `Automatically return loan ${ loanOut.driverId ? 'driver' : '' }${ loanOut.vehicleNo ? 'vehicle' : '' }` 
-                    })
+                    const initLoanRecord = async function (){
+                        let newLoanRecord = {
+                            driverId: loanOut.driverId,
+                            vehicleNo: loanOut.vehicleNo,
+                            indentId: loanOut.indentId, 
+                            taskId: loanOut.taskId,
+                            startDate: loanOut.startDate,
+                            endDate: loanOut.endDate, 
+                            groupId: loanOut.groupId,
+                            returnDate: moment().format('YYYY-MM-DD HH:mm:ss'),
+                            returnBy: 0, // 2023-12-12 Used to distinguish whether it is a system operation or a user operation
+                            creator: loanOut.creator,
+                            returnRemark: null,
+                            actualStartTime: loanOut.actualStartTime,
+                            actualEndTime: loanOut.actualEndTime,
+                            unitId: loanOut.unitId,
+                            activity: loanOut.activity,
+                            purpose: loanOut.purpose,
+                            createdAt: loanOut.createdAt
+                        };
+                        await LOANRecord.create(newLoanRecord);
+                        await LOAN.destroy({ where: { id: item.id } });
+                        let __loanOperDriver = loanOut.driverId && loanOut.driverId != '' ? `driverId:${ loanOut.driverId },` : ''
+                        let __loanOperVehicle = loanOut.vehicleNo && loanOut.vehicleNo != '' ? `vehicleNo:${ loanOut.vehicleNo }` : ''
+                        await OperationRecord.create({
+                            id: null,
+                            operatorId: 1,
+                            businessType: 'loan',
+                            businessId: loanOut.taskId,
+                            optType: 'return loan',
+                            beforeData: `${ __loanOperDriver }${ __loanOperVehicle }`,
+                            afterData: `${ __loanOperDriver }${ __loanOperVehicle }`,
+                            optTime: moment().format('YYYY-MM-DD HH:mm:ss'),
+                            remarks: `Automatically return loan ${ loanOut.driverId ? 'driver' : '' }${ loanOut.vehicleNo ? 'vehicle' : '' }` 
+                        })
+                    }
+                    await initLoanRecord()
                 }).catch(error => {
                     throw error
                 })
