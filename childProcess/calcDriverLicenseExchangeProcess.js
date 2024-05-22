@@ -66,7 +66,7 @@ const calcDriverLicenseInfo = async function(driverInfo) {
                 if (permitTypes) {
                     for (let temp of permitTypes) {
                         let permitTypeConf = await PermitType.findOne({ where: { permitType : temp} });
-                        if (permitTypeConf && permitTypeConf.parent) {
+                        if (permitTypeConf?.parent) {
                             let parentPermitType = permitTypeConf.parent;
                             
                             let parentPermitTypeObj = driverPermits.find(item => item.permitType == parentPermitType);
@@ -93,7 +93,7 @@ const calcDriverLicenseInfo = async function(driverInfo) {
                     if (!applyRecord || applyRecord.status == 'Pending Approval') {
                         let driverPermitObj = driverPermits.find(item => item.permitType == permitType);
                         let allType = [permitType.toLowerCase()];
-                        if (driverPermitObj && driverPermitObj.allType && driverPermitObj.allType.length > 0) {
+                        if (driverPermitObj?.allType && driverPermitObj.allType.length > 0) {
                             allType = driverPermitObj.allType;
                         } 
                         let checkTotalMileageResult =  await checkTotalMileage(driverInfo, permitType, allType);
@@ -129,8 +129,6 @@ const calcDriverLicenseInfo = async function(driverInfo) {
                                         emailConfirm: driverInfo.email,
                                         updateAt: moment()
                                     }, {where: {applyId: applyRecord.applyId}});
-                                } else {
-                                    
                                 }
                                 log.info(`Driver[${driverInfo.driverId}] permit:${permitType} apply exchange permit!`);
                             } else {
@@ -147,7 +145,7 @@ const calcDriverLicenseInfo = async function(driverInfo) {
         }
 	} catch (error) {
 		log.error(error);
-		errorMsg = 'calcDriverLicenseInfo:' + (error && error.message ? error.message : 'System error!');
+		errorMsg = 'calcDriverLicenseInfo:' + (error?.message ? error.message : 'System error!');
 	}
 
 	return errorMsg;
@@ -248,8 +246,6 @@ const calcDriverCivilianLicenseInfo = async function(driverInfo) {
                                 emailConfirm: driverInfo.email,
                                 updateAt: moment()
                             }, {where: {applyId: applyRecord.applyId}});
-                        } else {
-                            
                         }
                         log.info(`Driver[${driverInfo.driverId}] permit:${civilianLicense.permitType} apply exchange permit!`);
                     }
@@ -261,7 +257,6 @@ const calcDriverCivilianLicenseInfo = async function(driverInfo) {
         }
 	} catch (error) {
 		log.error(error);
-		errorMsg = 'calcDriverCivilianLicenseInfo:' + (error && error.message ? error.message : 'System error!');
 	}
 }
 
@@ -281,7 +276,7 @@ const checkEnlistmentDate = async function(driverInfo) {
         }
 	} catch (error) {
 		log.error(error);
-		errorMsg = 'calcDriverLicenseInfo.checkEnlistmentDate:' + (error && error.message ? error.message : 'System error!');
+		errorMsg = 'calcDriverLicenseInfo.checkEnlistmentDate:' + (error?.message ? error.message : 'System error!');
 	}
 
 	return errorMsg;
@@ -302,7 +297,7 @@ const checkAge = async function(driverInfo) {
         }
 	} catch (error) {
 		log.error(error);
-		errorMsg = 'calcDriverLicenseInfo.checkAge:' + (error && error.message ? error.message : 'System error!');
+		errorMsg = 'calcDriverLicenseInfo.checkAge:' + (error?.message ? error.message : 'System error!');
 	}
 
 	return errorMsg;
@@ -400,7 +395,7 @@ const checkTotalMileage = async function(driverInfo, permitType, allPermitTypes)
         }
 	} catch (error) {
 		log.error(error);
-		result.errorMsg = 'calcDriverLicenseInfo.checkEnlistmentDate:' + (error && error.message ? error.message : 'System error!');
+		result.errorMsg = 'calcDriverLicenseInfo.checkEnlistmentDate:' + (error?.message ? error.message : 'System error!');
 	}
 
 	return result;
@@ -428,7 +423,7 @@ const checkDemeritPoints = async function(driverInfo) {
         }
 	} catch (error) {
 		log.error(error);
-		result.errorMsg = 'calcDriverLicenseInfo.checkDemeritPoints:' + (error && error.message ? error.message : 'System error!');
+		result.errorMsg = 'calcDriverLicenseInfo.checkDemeritPoints:' + (error?.message ? error.message : 'System error!');
 	}
 
 	return result;
@@ -462,8 +457,9 @@ const getDriverMileageStatInfo = async function (driverId) {
         }
         const initStatResult = async function (){
             for (let permitType of permitTypes) {
-                let driverPermitTypeTaskMileage = driverPermitTaskMileageList.find(item => item.permitType == permitType);
-                let driverPermitTypeBaseMileage = driverMileageStatList.find(item => item.permitType == permitType);
+                let tempPermitType = permitType;
+                let driverPermitTypeTaskMileage = driverPermitTaskMileageList.find(item => item.permitType == tempPermitType);
+                let driverPermitTypeBaseMileage = driverMileageStatList.find(item => item.permitType == tempPermitType);
     
                 let totalMileage = 0;
                 if (driverPermitTypeTaskMileage) {
@@ -473,20 +469,20 @@ const getDriverMileageStatInfo = async function (driverId) {
                     totalMileage += driverPermitTypeBaseMileage.baseMileage || 0;
                 }
     
-                let permitTypeConf = await PermitType.findOne({ where: { permitType : permitType} });
-                if (permitTypeConf && permitTypeConf.parent) {
+                let permitTypeConf = await PermitType.findOne({ where: { permitType : tempPermitType} });
+                if (permitTypeConf?.parent) {
                     let parentPermitType = permitTypeConf.parent;
                     let parentMileageObj = statResult.find(item => item.permitType == parentPermitType);
                     if (parentMileageObj) {
                         parentMileageObj.totalMileage += totalMileage;
                         continue;
                     } else {
-                        permitType = parentPermitType;
-                        permitTypeConf = await PermitType.findOne({ where: { permitType : permitType} });
+                        tempPermitType = parentPermitType;
+                        permitTypeConf = await PermitType.findOne({ where: { permitType : tempPermitType} });
                     }
                 }
     
-                statResult.push({permitType: permitType, totalMileage: totalMileage});
+                statResult.push({permitType: tempPermitType, totalMileage: totalMileage});
             }
         }
         await initStatResult()
