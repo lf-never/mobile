@@ -106,9 +106,9 @@ module.exports = {
 						FROM urgent_indent ui
 						LEFT JOIN urgent_duty ud on ui.dutyId = ud.id
 						LEFT JOIN urgent_config uc ON ud.configId = uc.id
-						WHERE ui.id = '${indentId}'
+						WHERE ui.id = ?
 					`, { 
-						type: QueryTypes.SELECT, replacements: []
+						type: QueryTypes.SELECT, replacements: [indentId]
 					});
 					if (taskList.length) {
 						task = taskList[0];
@@ -127,9 +127,9 @@ module.exports = {
 						FROM urgent_duty ud
 						LEFT JOIN urgent_config uc ON ud.configId = uc.id
 						LEFT JOIN urgent_indent ui on ui.dutyId = ud.id
-						WHERE ud.dutyId = '${taskId}'
+						WHERE ud.dutyId = ?
 					`, { 
-						type: QueryTypes.SELECT, replacements: []
+						type: QueryTypes.SELECT, replacements: [taskId]
 					});
 					if (taskList.length) {
 						task = taskList[0];
@@ -174,9 +174,9 @@ module.exports = {
 						ud.dutyId as taskId,
 						ud.driverId
 					FROM urgent_duty ud
-					WHERE ud.dutyId = '${taskId}'
+					WHERE ud.dutyId = ?
 				`, { 
-					type: QueryTypes.SELECT, replacements: []
+					type: QueryTypes.SELECT, replacements: [taskId]
 				});
 				if (taskList && taskList.length > 0) {
 					task = taskList[0];

@@ -717,9 +717,9 @@ module.exports = {
                     FROM urgent_indent ui
                     LEFT JOIN urgent_duty ud on ui.dutyId = ud.id
                     LEFT JOIN urgent_config uc ON ud.configId = uc.id
-                    WHERE ui.id = '${indentId}'
+                    WHERE ui.id = ?
                 `, { 
-                    type: QueryTypes.SELECT, replacements: []
+                    type: QueryTypes.SELECT, replacements: [indentId]
                 });
                 if (taskList.length) {
                     task = taskList[0];
@@ -737,9 +737,9 @@ module.exports = {
                         ud.status as driverStatus
                     FROM urgent_duty ud
                     LEFT JOIN urgent_config uc ON ud.configId = uc.id
-                    WHERE ud.dutyId = '${taskId}'
+                    WHERE ud.dutyId = ?
                 `, { 
-                    type: QueryTypes.SELECT, replacements: []
+                    type: QueryTypes.SELECT, replacements: [taskId]
                 });
                 if (taskList.length) {
                     task = taskList[0];
@@ -793,7 +793,6 @@ module.exports = {
             let datas = await CheckList.findAll({ where: { taskId: taskId } })
             let checkList1 = datas.find(item => item.checkListName == CHECKLIST[1])
             let checkList2 = datas.find(item => item.checkListName == CHECKLIST[2])
-            let checkList3 = datas.find(item => item.checkListName == CHECKLIST[3])
             let checkList4 = datas.find(item => item.checkListName == CHECKLIST[4])
             let checkList5 = datas.find(item => item.checkListName == CHECKLIST[5])
             
@@ -881,9 +880,9 @@ module.exports = {
                     FROM urgent_indent ui
                     LEFT JOIN urgent_duty ud on ui.dutyId = ud.id
                     LEFT JOIN urgent_config uc ON ud.configId = uc.id
-                    WHERE ui.id = '${indentId}'
+                    WHERE ui.id = ?
                 `, { 
-                    type: QueryTypes.SELECT, replacements: []
+                    type: QueryTypes.SELECT, replacements: [indentId]
                 });
                 if (taskList.length) {
                     task = taskList[0];
@@ -901,9 +900,9 @@ module.exports = {
                         ud.status as driverStatus
                     FROM urgent_duty ud
                     LEFT JOIN urgent_config uc ON ud.configId = uc.id
-                    WHERE ud.dutyId = '${taskId}'
+                    WHERE ud.dutyId = ?
                 `, { 
-                    type: QueryTypes.SELECT, replacements: []
+                    type: QueryTypes.SELECT, replacements: [taskId]
                 });
                 if (taskList.length) {
                     task = taskList[0];
