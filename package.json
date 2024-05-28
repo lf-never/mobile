@@ -41,7 +41,7 @@
     "nconf": "^0.12.1",
     "node-jose": "^2.2.0",
     "node-schedule": "^2.1.0",
-    "node-xlsx": "^0.15.0",
+    "node-xlsx": "^0.24.0",
     "node-xmpp": "^1.1.0",
     "nodemailer": "^6.4.16",
     "pinkie-promise": "^2.0.1",
