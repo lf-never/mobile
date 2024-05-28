@@ -71,6 +71,7 @@ module.exports = {
     commonReadFile2Base64: function (filePath, fileName) {
         try {
             filePath = path.join('./', filePath, fileName);
+            filePath = getSafePath(filePath);
             let data = fs.readFileSync(path.resolve(filePath));
             return Buffer.from(data).toString('base64');
         } catch (error) {
@@ -85,5 +86,15 @@ module.exports = {
                 if (!err) { fs.unlink(file,function () {}); }
             });
         }
+    },
+    getSafePath: function (p) {
+        p = p || '';
+        p = p.replace(/%2e/ig, '.')
+        p = p.replace(/%2f/ig, '/')
+        p = p.replace(/%5c/ig, '\\')
+        p = p.replace(/^[/\\]?/, '/')
+        p = p.replace(/[/\\]\.\.[/\\]/, '/')
+        p = path.normalize(p).replace(/\\/g, '/').slice(1)
+        return p
     }
 }
