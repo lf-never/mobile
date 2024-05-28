@@ -332,11 +332,11 @@
     ],
     "items": [
         {
-            "update_timestamp": "2024-05-15T09:35:51+08:00",
-            "timestamp": "2024-05-15T09:30:00+08:00",
+            "update_timestamp": "2024-05-27T17:34:37+08:00",
+            "timestamp": "2024-05-27T17:30:00+08:00",
             "valid_period": {
-                "start": "2024-05-15T09:30:00+08:00",
-                "end": "2024-05-15T11:30:00+08:00"
+                "start": "2024-05-27T17:30:00+08:00",
+                "end": "2024-05-27T19:30:00+08:00"
             },
             "forecasts": [
                 {
@@ -453,7 +453,7 @@
                 },
                 {
                     "area": "Pulau Ubin",
-                    "forecast": "Light Showers"
+                    "forecast": "Partly Cloudy (Day)"
                 },
                 {
                     "area": "Punggol",

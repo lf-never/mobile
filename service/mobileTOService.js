@@ -1128,7 +1128,7 @@ module.exports = {
             log.info(`Task complete GetDriverNextTask success, userId: ${userId}.`);
             return res.json(utils.response(1, nextTask));
         } catch (error) {
-            log.info(`Task complete GetDriverNextTask fail, errorMsg: ` + (error && error.message ? error.message : "GetDriverNextTask info fail!"));
+            log.info(`Task complete GetDriverNextTask fail, errorMsg: ` + (error?.message ? error.message : "GetDriverNextTask info fail!"));
             log.error(error)
             return res.json(utils.response(0, null));
         }

@@ -355,37 +355,41 @@ module.exports = {
 			permitTypes.add(permitTypeMileage.permitType);
 		})
 
-		permitTypes.forEach(async permitType => {
+		for (let permitType of permitTypes) {
 			let newPermitType = permitType
 			let driverPermitTypeTaskMileage = driverPermitTaskMileageList.find(item => item.permitType == permitType);
 			let driverPermitTypeBaseMileage = driverMileageStatList.find(item => item.permitType == permitType);
 
-			let totalMileage = 0;
-			if (driverPermitTypeTaskMileage) {
-				totalMileage += driverPermitTypeTaskMileage.permitMileage ? driverPermitTypeTaskMileage.permitMileage : 0;
-			}
-			if (driverPermitTypeBaseMileage) {
-				totalMileage += driverPermitTypeBaseMileage.baseMileage ? driverPermitTypeBaseMileage.baseMileage : 0;
-			}
-
-			let permitTypeConf = await PermitType.findOne({ where: { permitType : newPermitType} });
-			if (permitTypeConf?.parent) {
-				let parentPermitType = permitTypeConf.parent;
-				let parentMileageObj = statResult.find(item => item.permitType == parentPermitType);
-				if (parentMileageObj) {
-					parentMileageObj.totalMileage += totalMileage;
-					return;
-				} else {
-					newPermitType = parentPermitType;
-					permitTypeConf = await PermitType.findOne({ where: { permitType: newPermitType} });
+			const getStateResult = async function () {
+				let totalMileage = 0;
+				if (driverPermitTypeTaskMileage) {
+					totalMileage += driverPermitTypeTaskMileage.permitMileage ? driverPermitTypeTaskMileage.permitMileage : 0;
 				}
-			} else {
-				return;
+				if (driverPermitTypeBaseMileage) {
+					totalMileage += driverPermitTypeBaseMileage.baseMileage ? driverPermitTypeBaseMileage.baseMileage : 0;
+				}
+	
+				let permitTypeConf = await PermitType.findOne({ where: { permitType : newPermitType} });
+				if (permitTypeConf?.parent) {
+					let parentPermitType = permitTypeConf.parent;
+					let parentMileageObj = statResult.find(item => item.permitType == parentPermitType);
+					if (parentMileageObj) {
+						parentMileageObj.totalMileage += totalMileage;
+						return;
+					} else {
+						newPermitType = parentPermitType;
+						permitTypeConf = await PermitType.findOne({ where: { permitType: newPermitType} });
+					}
+				} else {
+					return;
+				}
+	
+				let eligibilityMileage = permitTypeConf?.eligibilityMileage ? permitTypeConf.eligibilityMileage : 4000;
+				statResult.push({permitType: newPermitType, totalMileage, eligibilityMileage});
 			}
 
-			let eligibilityMileage = permitTypeConf?.eligibilityMileage ? permitTypeConf.eligibilityMileage : 4000;
-			statResult.push({permitType: newPermitType, totalMileage, eligibilityMileage});
-		})
+			await getStateResult();
+		}
 
 		statResult.forEach(temp => {
 			let moreMileage = temp.totalMileage < temp.eligibilityMileage ? temp.eligibilityMileage - temp.totalMileage : 0;

@@ -308,15 +308,14 @@ module.exports.updatePosition = async function (req, res) {
 module.exports.updatePositionByFile = function (req, res) {
     try {
 		gpsLog.info(`===========================`)
-		gpsLog.warn(`Current userId => ${ req.header('userId') }`)
-		gpsLog.info(`start updatePositionByFile: ${ moment().format('YYYY-MM-DD HH:mm:ss') }`)
+		gpsLog.info(`start updatePositionByFile userId => ${ req.header('userId') }: ${ moment().format('YYYY-MM-DD HH:mm:ss') }`)
 		gpsLog.info(`===========================`)
 
         const form = formidable({ multiples: true, maxFileSize: 20 * 1024 * 1024, keepExtensions: true });
 		form.on('progress', function (bytesReceived, bytesExpected) {
-			console.log('PROGRESS');
-			console.log(`bytesReceived: ` + bytesReceived);
-			console.log(`bytesExpected: ` + bytesExpected);
+			gpsLog.warn('PROGRESS');
+			gpsLog.warn(`bytesReceived: ` + bytesReceived);
+			gpsLog.warn(`bytesExpected: ` + bytesExpected);
 		});
 
 		form.on('error', function (error) {
@@ -346,6 +345,7 @@ module.exports.updatePositionByFile = function (req, res) {
 		
 			readStream.on('end', function (chunk) {
 				let data = positionStr.replace(new RegExp('\\n', 'g'), ',')
+				// let data = positionStr
 				data = data.substring(0, data.length - 1);
 				data = '[' + data + ']';
 				gpsLog.info(data)
@@ -355,8 +355,8 @@ module.exports.updatePositionByFile = function (req, res) {
 				fileUtils.commonDeleteFiles([files.file.path])
 			})
 
-			readStream.on('close', function (error) {
-				log.warn(`updatePositionByFile close read file`)
+			readStream.on('close', function (error) { 
+				gpsLog.warn(`updatePositionByFile close read file, userId => ${ req.header('userId')} `) 
 			})
 		
 			// readStream.on('error', function (error) {
@@ -388,8 +388,8 @@ module.exports.updatePositionByFile = function (req, res) {
 				let position = positionList.at(-1);
 				position = JSON.parse(position.latestPosition)
 
-				gpsLog.info(moment(driverPosition.gpsTime).format('YYYY-MM-DD HH:mm:ss'))
-				gpsLog.info(moment(Number.parseInt(position.gpstime)).format('YYYY-MM-DD HH:mm:ss'))
+				// gpsLog.info(moment(driverPosition.gpsTime).format('YYYY-MM-DD HH:mm:ss'))
+				// gpsLog.info(moment(Number.parseInt(position.gpstime)).format('YYYY-MM-DD HH:mm:ss'))
 				return moment(driverPosition.gpsTime).format('YYYY-MM-DD HH:mm:ss') == moment(Number.parseInt(position.gpstime)).format('YYYY-MM-DD HH:mm:ss')
 			} else {
 				return false;
@@ -540,6 +540,7 @@ module.exports.updatePositionByFile = function (req, res) {
 			})
 
 			let positionHistoryList = []
+			gpsLog.info(`prepare update position history (length: ${ positionList.length }) userId => ${ req.header('userId') }: ${ moment().format('YYYY-MM-DD HH:mm:ss') }`)
 			for (let position of positionList) {
 				let _latestPosition = position.latestPosition;
 				_latestPosition = JSON.parse(_latestPosition)
@@ -558,15 +559,17 @@ module.exports.updatePositionByFile = function (req, res) {
 				})
 			}
 			if (positionHistoryList.length) {
+				gpsLog.info(`start update position history userId => ${ req.header('userId') }: ${ moment().format('YYYY-MM-DD HH:mm:ss') }`)
 				await DriverPositionHistory.bulkCreate(positionHistoryList)
-
+				gpsLog.info(`end   update position history userId => ${ req.header('userId') }: ${ moment().format('YYYY-MM-DD HH:mm:ss') }`)
+				
 				// Add 2024-03-18
 				speedingProcess.send({ dataList: positionHistoryList })
 				alertProcess.send({ dataList: positionHistoryList })
 			}
 
 			gpsLog.info(`===========================`)
-			gpsLog.info(`end updatePositionByFile: ${ moment().format('YYYY-MM-DD HH:mm:ss') }`)
+			gpsLog.info(`end updatePositionByFile userId => ${ req.header('userId') }: ${ moment().format('YYYY-MM-DD HH:mm:ss') }`)
 			gpsLog.info(`===========================`)
 			return res.json(utils.response(1, 'Success'));
 		})

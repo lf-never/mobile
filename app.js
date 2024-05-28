@@ -85,6 +85,7 @@ app.use(function(err, req, res, next) {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
   res.status(err.status || 500);
+  log.error(`URL(${ req.originalUrl }) `, err);
   log.error(`URL(${ req.originalUrl }) `, JSON.stringify(err));
   res.json(utils.response(0, err.message)); 
 });

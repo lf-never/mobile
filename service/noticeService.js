@@ -133,7 +133,7 @@ let NoticeUtils = {
         const generateResultList = async function (noticeList, taskList) {
             let resultList = []
             // has task, check every task on platform/toCategory/toType
-            noticeList.forEach(async notice => {
+            const generateResultByNotice = async function (notice, taskList) {
                 for (let task of taskList) {
                     // check platform
                     if (notice.platform && notice.platform != task.platform) {
@@ -157,7 +157,10 @@ let NoticeUtils = {
                     resultList.push(notice);
                     break;
                 }
-            })
+            }
+            for (let notice of noticeList) {
+                await generateResultByNotice(notice, taskList)
+            }
             return resultList
         }
 

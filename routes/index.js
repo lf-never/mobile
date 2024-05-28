@@ -1,5 +1,4 @@
 const express = require('express');
-// const fs = require('fs');
 const fs = require('graceful-fs');
 const router = express.Router();
 require('express-async-errors');
@@ -70,7 +69,7 @@ router.post('/getIncidentList', incidentService.getIncidentList);
 router.post('/getAllIncidentList', incidentService.getAllIncidentList);
 router.post('/getIncidentTypeList', incidentService.getIncidentTypeList);
 
-router.post('/updateWaypointPosition', positionService.updateWaypointPosition);
+// router.post('/updateWaypointPosition', positionService.updateWaypointPosition);
 router.post('/updatePositionByFile', positionService.updatePositionByFile);
 
 router.post('/getFriendsPosition', positionService.getFriendsPosition);
@@ -122,6 +121,10 @@ router.post('/getMT_RACData', mtRACService.getMT_RACData);
 router.post('/createMT_RAC', mtRACService.createMT_RAC);
 router.post('/verifyMT_RAC', mtRACService.verifyMT_RAC);
 
+router.post('/verifyDriverSurvey', mtRACService.verifyDriverSurvey);
+router.post('/createMedicSurvey', mtRACService.createMedicSurvey);
+router.post('/verifyMedicSurvey', mtRACService.verifyMedicSurvey);
+
 // route brief
 // delete 2023-11-15
 
@@ -146,11 +149,12 @@ router.post('/updatePopupNoticeAsRead', noticeService.updatePopupNoticeAsRead);
 
 // Trip
 const tripService = require('../service/tripService');
-router.post('/getTripIndents', tripService.getTripIndents);
 router.post('/cancelTripById', tripService.cancelTripById);
 
 router.post('/updateDriverEmail', driverService.updateDriverEmail);
 router.post('/getDriverPermitStatus', driverService.getDriverPermitStatus);
 router.post('/getDriverAchievementData', driverService.getDriverAchievementData);
+
+// check list
 
 module.exports = router;
