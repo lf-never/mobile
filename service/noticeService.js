@@ -17,6 +17,7 @@ const { DriverAssessmentRecord } = require('../model/driverAssessmentRecord');
 const { UserUtils } = require('./userService');
 
 const { DriverLicenseExchangeApply } = require('../model/DriverLicenseExchangeApply.js');
+const fileUtils = require('../util/fileUtils.js');
 
 let NoticeUtils = {
     getNoticeList: async function (user, option = {}) {
@@ -192,11 +193,15 @@ let NoticeUtils = {
         }
 
         resultList.forEach(notice => {
-            if (notice.coverImage && !fs.existsSync(`./public/${ notice.coverImage }`)) {
-                fs.writeFileSync(`./public/${ notice.coverImage }`, Buffer.from(notice.coverImageBase64, 'base64'))
+            let noticeCoverImgPath = `./public/${ notice.coverImage }`
+            noticeCoverImgPath = fileUtils.getSafePath(noticeCoverImgPath);
+            if (notice.coverImage && !fs.existsSync(noticeCoverImgPath)) {
+                fs.writeFileSync(noticeCoverImgPath, Buffer.from(notice.coverImageBase64, 'base64'))
             }
-            if (notice.mainImage && !fs.existsSync(`./public/${ notice.mainImage }`)) {
-                fs.writeFileSync(`./public/${ notice.mainImage }`, Buffer.from(notice.mainImageBase64, 'base64'))
+            let noticeMainImgPath = `./public/${ notice.mainImage }`
+            noticeMainImgPath = fileUtils.getSafePath(noticeMainImgPath);
+            if (notice.mainImage && !fs.existsSync(noticeMainImgPath)) {
+                fs.writeFileSync(noticeMainImgPath, Buffer.from(notice.mainImageBase64, 'base64'))
             }
 
             system.push({
