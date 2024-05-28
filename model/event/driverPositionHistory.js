@@ -12,8 +12,8 @@ module.exports.DriverPositionHistory = dbConf.sequelizeObj.define('driver_positi
         allowNull: false,
     },
     vehicleNo: {
-        type: DataTypes.STRING(55),
-        allowNull: false,
+        type: DataTypes.STRING,
+        defaultValue: null,
     },
     lat: {
         type: DataTypes.FLOAT(13, 10),

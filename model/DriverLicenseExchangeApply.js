@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const dbConf = require('../db/dbConf');
 
-module.exports.DriverLicenseExchangeApply = dbConf.sequelizeObj.define('licenseExchangeApply', {
+module.exports.DriverLicenseExchangeApply = dbConf.sequelizeObj.define('driver_license_exchange_apply', {
     applyId: {
         type: DataTypes.BIGINT, 
         primaryKey: true,
@@ -44,14 +44,11 @@ module.exports.DriverLicenseExchangeApply = dbConf.sequelizeObj.define('licenseE
         type: DataTypes.DATE,
     },
     emailConfirm: {
-        type: DataTypes.STRING(64),
-    },
-    approveBy: {
-        type: DataTypes.INTEGER(12)
+        type: DataTypes.STRING(60),
     },
     status: {
         type: DataTypes.STRING(20),
-        defaultValue: 'waitApprove',
+        defaultValue: 'Pending Approval',
     },
     creator: {
         type: DataTypes.INTEGER(12),
@@ -65,7 +62,7 @@ module.exports.DriverLicenseExchangeApply = dbConf.sequelizeObj.define('licenseE
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW(),
     }
-}, {
-    tableName: 'driver_license_exchange_apply',
-    timestamps: false,
-})
+  }, {
+    // other options
+    timestamps: true
+});
