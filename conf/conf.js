@@ -3,11 +3,11 @@
  * Please use 'mysql_native_password' instead of 'caching_sha2_password'
  */
 module.exports.dbConf = {
-    host: 'localhost',
+    host: '192.168.1.140',
     user: 'root',
     password: 'root',
     port: 3306,
-    database: 'mobius-driver',
+    database: 'mobius-driver-gps',
     timezone: 'GMT%2B8',
     multipleStatements: true,
     connectionLimit: 1000

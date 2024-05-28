@@ -2,8 +2,11 @@ const moment = require('moment');
 const jwt = require('jsonwebtoken');
 const jwtConf = require('../conf/jwt');
 const crypto = require('crypto');
+const jsonfile = require('jsonfile')
 
 const log = require('../log/winston').logger('Utils');
+
+let systemConfig = jsonfile.readFileSync( __dirname + '/../conf/systemConf.json')
 
 module.exports.response = function (code, message) {
     return {
@@ -59,7 +62,7 @@ module.exports.generateMD5Code = function (str) {
 
 // 2023-08-29 encipherment.
 module.exports.generateAESCode = function (str) {
-    const ciper = crypto.createCipheriv('aes128', '0123456789abcdef', '0123456789abcdef');
+    const ciper = crypto.createCipheriv('aes128', systemConfig.aesKey, systemConfig.aesIv);
     let returnStr = ciper.update(str, 'utf8', 'hex');
     returnStr += ciper.final('hex');
     return returnStr;
@@ -67,7 +70,7 @@ module.exports.generateAESCode = function (str) {
 
 // 2023-08-29 decode.
 module.exports.decodeAESCode = function (str) {
-    const deciper = crypto.createDecipheriv('aes128', '0123456789abcdef', '0123456789abcdef');
+    const deciper = crypto.createDecipheriv('aes128', systemConfig.aesKey, systemConfig.aesIv);
     let descrped = deciper.update(str, 'hex', 'utf8');
     descrped += deciper.final('utf8')
     return descrped;
@@ -83,7 +86,7 @@ module.exports.getClientIP = function (req) {
 
 // 2023-08-29 decode.
 module.exports.decodeAESCode = function (str) {
-    const deciper = crypto.createDecipheriv('aes128', '0123456789abcdef', '0123456789abcdef');
+    const deciper = crypto.createDecipheriv('aes128', systemConfig.aesKey, systemConfig.aesIv);
     let descrped = deciper.update(str, 'hex', 'utf8');
     descrped += deciper.final('utf8')
     return descrped;

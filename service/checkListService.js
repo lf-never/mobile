@@ -17,7 +17,7 @@ const the3rdAccount = {
     "password": "P@ssw0rd2024"
 }
 const URL_List = {
-    apiToken: 'https://ebos.labhostio.com/api/token/',
+    apiPath: 'https://ebos.labhostio.com/api/token/',
     getCheckList: 'https://ebos.labhostio.com/checklist/get_latest_checklist_by_sku_name/',
     viewCheckList: 'https://ebos.labhostio.com/checklist/get_questions_by_checklist_view/',
 }
@@ -35,7 +35,7 @@ module.exports = {
             beforeData: JSON.stringify(the3rdAccount),
             optTime: moment().format('YYYY-MM-DD HH:mm:ss')
         })
-        let result = await axios.post(URL_List.apiToken, the3rdAccount).catch(error => {
+        let result = await axios.post(URL_List.apiPath, the3rdAccount).catch(error => {
             if (error.response) {
                 return {
                     status: error.response.status,
