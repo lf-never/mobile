@@ -18,6 +18,12 @@ module.exports.UrgentIndent = dbConf.sequelizeObj.define('urgentIndent', {
 	endTime: {
         type: DataTypes.DATE,
     },
+    mobileStartTime: {
+        type: DataTypes.DATE,
+    },
+	mobileEndTime: {
+        type: DataTypes.DATE,
+    },
     vehicleType: {
         type: DataTypes.STRING(55),
     },
@@ -36,6 +42,9 @@ module.exports.UrgentIndent = dbConf.sequelizeObj.define('urgentIndent', {
     indentId: {
         type: DataTypes.STRING(55),
     },
+    requestId: {
+        type: DataTypes.STRING(55),
+    },
     hub: {
         type: DataTypes.STRING(50),
     },
@@ -45,6 +54,12 @@ module.exports.UrgentIndent = dbConf.sequelizeObj.define('urgentIndent', {
     groupId: {
         type: DataTypes.INTEGER,
     },
+    vehicleNo: {
+        type: DataTypes.STRING(15),
+    },
+    driverId: {
+        type: DataTypes.BIGINT(15),
+    }, 
     amendedBy: {
         type: DataTypes.INTEGER(11),
     },

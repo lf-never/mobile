@@ -1,51 +1,93 @@
-require('./db/dbHelper');
+const express = require('express');
+const session = require('express-session');
+const favicon = require('serve-favicon');
+const path = require('path');
+const logger = require('morgan');
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+let ejs = require('ejs');
+
+require('./log/winston').initLogger()
 const log = require('./log/winston').logger('APP');
+const utils = require('./util/utils');
 
-// const sosSchedule = require('./schedule/sosSchedule.js');
-// sosSchedule.calcSosSchedule();
+const index = require('./routes/index');
+const keypress = require('./routes/keypress');
+const offline = require('./routes/offline');
+const urlInterceptor = require('./interceptor/urlInterceptor');
+const taskStatusCheckInterceptor = require('./interceptor/taskStatusCheckInterceptor');
 
-// const ownerHotoAndLoanReturn = require('./schedule/ownerHotoAndLoanReturn.js');
-// ownerHotoAndLoanReturn.hotoReturnSchedule();
+const mobileTORouter = require('./routes/mobileTO');
+const mobileTripRouter = require('./routes/mobileTrip');
 
-// // const intiUrgentDuty = require('./schedule/initUrgentDuty.js');
-// // intiUrgentDuty.urgentDutySchedule();
+const app = express();
+const cpu = require('./routes/cpu');
+app.use('/cpu', cpu);
 
-// const DriverORDExpiredSchedule = require('./schedule/DriverORDExpiredSchedule.js');
-// DriverORDExpiredSchedule.driverORDExpiredSchedule();
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.engine('html', ejs.__express);
+app.set('view engine', 'html');
 
-// // const notificationSchedule = require('./schedule/notificationSchedule.js');
-// // notificationSchedule.prepareSendNotification();
+app.use(logger('dev'));
+app.use(favicon(path.join(__dirname, 'public', 'mobius.ico')));
+app.use(bodyParser.json({limit: '100mb'}));
+app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
+app.use(cookieParser());
+app.use(cors()); 
 
-// const driverLicenseExchangeSchedule = require('./schedule/driverLicenseExchangeSchedule.js');
-// driverLicenseExchangeSchedule.calcDriverLicenseExchange();
+app.use(express.static(path.join(__dirname, 'public')));
 
-// const trafficSchedule = require('./schedule/trafficSchedule');
-// trafficSchedule.updateTrafficSpeedBandsByChildProcess();
+app.use(function (req, res, next) {
+  res.setTimeout(5 * 60 * 1000, function () {
+      log.info('*************************');
+      log.info('Request has timed out. ');
+      log.info('HTTP Request URL: ', req.url);
+      log.info('HTTP Request Body: ', JSON.stringify(req.body));
+      log.info('*************************');
+      res.json(utils.response(0, 'Request has timed out.'));
+  });
+  next();
+});
 
-// const driverMonthAchievementSchedule = require('./schedule/driverMonthAchievementSchedule.js');
-// driverMonthAchievementSchedule.calcDriverMonthAchievement();
+app.use(urlInterceptor);
+app.use(taskStatusCheckInterceptor);
+app.use('/mobileTO', mobileTORouter);
+app.use('/mobileTrip', mobileTripRouter);
 
-// const VehicleWptSchedule = require('./schedule/VehicleWptSchedule.js');
-// VehicleWptSchedule.calcVehicleWptInfoSchedule();
+app.use('/', index);
+app.use('/keypress', keypress);
+app.use('/offline', offline);
 
-const resourceMonthWorkdaysStatSchedule = require('./schedule/resourceMonthWorkdaysStatSchedule.js');
-resourceMonthWorkdaysStatSchedule.calcResourceMonthWorkdays();
-
-// const { urgentNoGoZoneSchedule } = require('./schedule/noGoZoneSchedule.js');
-// urgentNoGoZoneSchedule();
-
-// 2022-10-25
-// Remove, will calculate by mobile logout
-// const mq = require('./activemq/activemq')
-// mq.initActiveMQ()
-// const obdMileageSchedule = require('./schedule/obdMileageSchedule');
-// obdMileageSchedule.CheckOBDDistance();
+//singpass login
+const singpassHome = require('./singpass/home')
+const callback = require('./singpass/callback')
+app.get('/singpassHome', singpassHome)
+app.get('/callback', callback)
 
 process.on('uncaughtException', function (e) {
-    log.error(`uncaughtException`)
-    log.error(e.message)
+  log.error(`uncaughtException`)
+  log.error(e)
 });
 process.on('unhandledRejection', function (err, promise) {
-    log.error(`unhandledRejection`);
-    log.error(err.message);
+  log.error(`unhandledRejection`);
+  log.error(err);
 })
+
+app.use(function(req, res, next) {
+    const err = new Error('Not Found');
+    err.status = 404;
+    next(err);
+});
+
+app.use(function(err, req, res, next) {
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
+  res.status(err.status || 500);
+  log.error(`URL(${ req.originalUrl }) `, err);
+  log.error(`URL(${ req.originalUrl }) `, JSON.stringify(err));
+  res.json(utils.response(0, err.message)); 
+});
+
+module.exports = app;
