@@ -59,22 +59,7 @@ process.on('message', async positionProcess => {
 			}
 
 			// check alter
-			let realtimeAlertList = []
-			for (let alertZone of zoneList) {
-				// log.info(`checkoutAlertEvent => ${ alertZone.zoneName }`)
-				
-				if (Tools.checkAlertDate(alertZone, data.createdAt) 
-					&& Tools.checkAlertTime(alertZone, data.createdAt)
-					&& Tools.checkPointInPolygon([data.lat, data.lng], JSON.parse(alertZone.polygon))) {
-						realtimeAlertList.push([
-							data.driverId,
-							data.vehicleNo,
-							task.taskId,
-							data.createdAt,
-							alertZone.id
-						]) 
-				}
-			}
+			let realtimeAlertList = buildRealTimeAlert(zoneList, data, task.taskId);
 
 			// save
 			if (realtimeAlertList.length) {
@@ -113,6 +98,24 @@ process.on('message', async positionProcess => {
 		process.send({ success: false, error })
 	}
 })
+
+const buildRealTimeAlert = function(zoneList, data, taskId) {
+	let realtimeAlertList = [];
+	for (let alertZone of zoneList) {
+		if (Tools.checkAlertDate(alertZone, data.createdAt) 
+			&& Tools.checkAlertTime(alertZone, data.createdAt)
+			&& Tools.checkPointInPolygon([data.lat, data.lng], JSON.parse(alertZone.polygon))) {
+				realtimeAlertList.push([
+					data.driverId,
+					data.vehicleNo,
+					taskId,
+					data.createdAt,
+					alertZone.id
+				]) 
+		}
+	}
+	return realtimeAlertList;
+}
 
 process.on('exit', function (listener) {
 	log.warn(`Process exit ...`)

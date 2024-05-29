@@ -313,7 +313,10 @@ module.exports.updatePositionByFile = function (req, res) {
 		gpsLog.info(`start updatePositionByFile userId => ${ req.header('userId') }: ${ moment().format('YYYY-MM-DD HH:mm:ss') }`)
 		gpsLog.info(`===========================`)
 
-        const form = formidable({ multiples: true, maxFileSize: 20 * 1024 * 1024, keepExtensions: true, uploadDir: conf.GPS_FILE_PATH});
+		if (!fs.existsSync(conf.GPS_FILE_PATH)) {
+			fs.mkdirSync(conf.GPS_FILE_PATH, {recursive: true});
+		}
+        const form = formidable({ multiples: true, maxFileSize: 20 * 1024 * 1024, keepExtensions: false, uploadDir: conf.GPS_FILE_PATH});
 		form.on('progress', function (bytesReceived, bytesExpected) {
 			gpsLog.warn('PROGRESS');
 			gpsLog.warn(`bytesReceived: ` + bytesReceived);
