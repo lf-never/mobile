@@ -7,6 +7,19 @@ const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 let ejs = require('ejs');
+const rateLimit = require("express-rate-limit");
+const csurf = require("csurf");
+
+// Rate limit middleware
+const singpassRateLimit = rateLimit({
+  windowMs: 1 * 1000, // 1 seconds
+  max: 1000,
+  message: "Access count exceeded limit!",
+  statusCode: 400,
+  skip: function (req) {
+      //return req.chkAdmin
+  }
+});
 
 require('./log/winston').initLogger()
 const log = require('./log/winston').logger('APP');
@@ -30,12 +43,15 @@ app.set('views', path.join(__dirname, 'views'));
 app.engine('html', ejs.__express);
 app.set('view engine', 'html');
 
+app.disable('x-powered-by');
+
 app.use(logger('dev'));
 app.use(favicon(path.join(__dirname, 'public', 'mobius.ico')));
 app.use(bodyParser.json({limit: '100mb'}));
 app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 app.use(cookieParser());
-app.use(cors()); 
+app.use(cors());
+app.use(csurf());
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -64,7 +80,7 @@ app.use('/offline', offline);
 const singpassHome = require('./singpass/home')
 const callback = require('./singpass/callback')
 app.get('/singpassHome', singpassHome)
-app.get('/callback', callback)
+app.get('/callback', singpassRateLimit, callback)
 
 process.on('uncaughtException', function (e) {
   log.error(`uncaughtException`)
@@ -86,7 +102,6 @@ app.use(function(err, req, res, next) {
   res.locals.error = req.app.get('env') === 'development' ? err : {};
   res.status(err.status || 500);
   log.error(`URL(${ req.originalUrl }) `, err);
-  log.error(`URL(${ req.originalUrl }) `, JSON.stringify(err));
   res.json(utils.response(0, err.message)); 
 });
 

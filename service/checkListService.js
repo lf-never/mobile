@@ -13,8 +13,8 @@ const { OperationRecord } = require('../model/operationRecord');
 const { CheckListQuestion } = require('../model/checkListQuestion');
 
 const the3rdAccount = {
-    "username": "mobius_test",
-    "password": "P@ssw0rd2024"
+    "username": conf.THIRD_PART_CHECKLIST_USERNAME,
+    "password": conf.THIRD_PART_CHECKLIST_PASSWORD
 }
 const URL_List = {
     apiPath: 'https://ebos.labhostio.com/api/token/',

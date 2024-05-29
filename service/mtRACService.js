@@ -186,7 +186,7 @@ module.exports = {
 
 			await sequelizeObj.transaction(async transaction => {
 				let mtRAC = null;
-				mtRAC = await MT_RAC.findOne({ where: { taskId }, order: [ [ 'id', '	' ] ] });
+				mtRAC = await MT_RAC.findOne({ where: { taskId }, order: [ [ 'id', 'DESC' ] ] });
 				if (signatureFrom === 'officer') {
 					mtRAC.officer = signatureBy;
 					mtRAC.officerSignature = signature;
@@ -266,7 +266,7 @@ module.exports = {
 			let riskAssessmentList = await RiskAssessment.findAll();
 			let riskTypeList = riskAssessmentList.map(riskAssessment => riskAssessment.riskType)
 			riskTypeList = Array.from(new Set(riskTypeList));
-			let result = { riskAssessmentList: [] }
+			let result = []
 			for (let riskType of riskTypeList) {
 				let newRiskAssessmentList = {
 					name: riskType,
@@ -276,7 +276,7 @@ module.exports = {
 				for (let riskAssessment of riskAssessmentList) {
 					if (riskAssessment.riskType === riskType) newRiskAssessmentList.assessmentList.push(riskAssessment)
 				}
-				result.riskAssessmentList.push(newRiskAssessmentList)
+				result.push(newRiskAssessmentList)
 			}
 
 			return res.json(utils.response(1, result));

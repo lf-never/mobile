@@ -3,11 +3,11 @@
  * Please use 'mysql_native_password' instead of 'caching_sha2_password'
  */
 module.exports.dbConf = {
-    host: '192.168.1.140',
+    host: 'localhost',
     user: 'root',
     password: 'root',
     port: 3306,
-    database: 'mobius-driver-gps',
+    database: 'mobius-driver',
     timezone: 'GMT%2B8',
     multipleStatements: true,
     connectionLimit: 1000
@@ -40,8 +40,6 @@ module.exports.LatestIOSVersion = '2.0';
 
 module.exports.firebaseServer = 'http://localhost:10000'
 
-module.exports.activeMQConf = 'mqtt://192.168.1.9:1883';
-
 module.exports.GPS_Missing_Time = 1; // min
 
 module.exports.Stop_Upload_Position_Time = 30; // min
@@ -56,6 +54,8 @@ module.exports.Weather_Forecast_Label = {
 
 module.exports.Training_LimitDays = 10;
 module.exports.mmpk_path = 'd://Singapore.mmpk';
+
+module.exports.GPS_FILE_PATH = 'd://mobileGps';
 
 // module.exports.URL_Of_3rd_List = {
 //     GetTOIndents: `http://192.168.1.9:5001/mobileTO/getTOIndents`,
@@ -83,3 +83,7 @@ module.exports.mobileBaseUrl = "http://localhost:5100";
 module.exports.reportLateReasonMinutes = 60;
 
 module.exports.ekey_press_server_url = 'http://localhost:57181/';
+
+module.exports.THIRD_PART_CHECKLIST_USERNAME = 'mobius_test';
+
+module.exports.THIRD_PART_CHECKLIST_PASSWORD = 'P@ssw0rd2024';

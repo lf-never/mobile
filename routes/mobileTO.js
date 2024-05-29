@@ -4,9 +4,9 @@ require('express-async-errors');
 
 const mobileTOService = require('../service/mobileTOService')
 
-router.get('/singpass', function(req, res, next) {
-    res.render('singpassStart', { title: 'Singpass Login' });
-});
+// router.get('/singpass', function(req, res, next) {
+//     res.render('singpassStart', { title: 'Singpass Login' });
+// });
 
 router.post('/startTask', mobileTOService.startTask);
 router.post('/endTask', mobileTOService.endTask);

@@ -71,7 +71,7 @@ module.exports = {
     commonReadFile2Base64: function (filePath, fileName) {
         try {
             filePath = path.join('./', filePath, fileName);
-            filePath = getSafePath(filePath);
+            filePath = this.getSafePath(filePath);
             let data = fs.readFileSync(path.resolve(filePath));
             return Buffer.from(data).toString('base64');
         } catch (error) {

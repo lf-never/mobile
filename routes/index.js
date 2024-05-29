@@ -3,6 +3,17 @@ const fs = require('graceful-fs');
 const router = express.Router();
 require('express-async-errors');
 
+const rateLimit = require("express-rate-limit");
+const downLoadMapRateLimit = rateLimit({
+    windowMs: 1 * 1000, // 1 seconds
+    max: 500,
+    message: "Access count exceeded limit!",
+    statusCode: 400,
+    skip: function (req) {
+        //return req.chkAdmin
+    }
+  });
+
 const conf = require('../conf/conf');
 
 const mobileService = require('../service/mobileService');
@@ -21,9 +32,9 @@ router.get('/', function(req, res, next) {
     });
 });
 
-router.get('/mobileLogin', function(req, res, next) {
-    res.render('loginTO', { title: 'Login' });
-});
+// router.get('/mobileLogin', function(req, res, next) {
+//     res.render('loginTO', { title: 'Login' });
+// });
 
 router.post('/getLatestAPKVersion', function(req, res, next) {
     return res.json({
@@ -39,7 +50,7 @@ router.post('/getLatestAPKVersionForIOS', function(req, res, next) {
     });
 });
 
-router.get('/downloadMMPK', function(req, res, next) {
+router.get('/downloadMMPK', downLoadMapRateLimit,  function(req, res, next) {
     res.download(conf.mmpk_path);
     // let rs = fs.createReadStream(conf.mmpk_path);
     // res.writeHead(200, {
@@ -120,10 +131,6 @@ router.post('/getMT_RACData', mtRACService.getMT_RACData);
 
 router.post('/createMT_RAC', mtRACService.createMT_RAC);
 router.post('/verifyMT_RAC', mtRACService.verifyMT_RAC);
-
-router.post('/verifyDriverSurvey', mtRACService.verifyDriverSurvey);
-router.post('/createMedicSurvey', mtRACService.createMedicSurvey);
-router.post('/verifyMedicSurvey', mtRACService.verifyMedicSurvey);
 
 // route brief
 // delete 2023-11-15

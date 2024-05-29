@@ -87,9 +87,12 @@ module.exports = {
                 log.warn(`[${ label }] ` + str.join(' '))
             },
             error: function(...str) {
+                log.error(str)
                 if (str.length > 1 || typeof str[0] == 'string') {
                     // Custom error
                     log.error(`[${ label }] ` + str.join(' '))
+                    log.error(`[${ label }] ` + str[1]?.message)
+                    log.error(`[${ label }] ` + str[1]?.stack)
                 } else if (str[0]?.stack?.original) {
                     // DB Error
                     log.error(`[${ label }] ` + str[0].original.code)

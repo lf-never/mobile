@@ -46,28 +46,6 @@ module.exports.MT_RAC = dbConf.sequelizeObj.define('mt_rac', {
     officerSignatureDateTime: {
         type: DataTypes.DATE,
     },
-    checkType: {
-        type: DataTypes.TEXT,
-        allowNull: false
-    },
-    driverSignatureBy: {
-        type: DataTypes.STRING(55),
-    },
-    driverSignature: {
-        type: DataTypes.BLOB,
-    },
-    driverSignatureDateTime: {
-        type: DataTypes.DATE,
-    },
-    medicSignatureBy: {
-        type: DataTypes.STRING(55),
-    },
-    medicSignature: {
-        type: DataTypes.BLOB,
-    },
-    medicSignatureDateTime: {
-        type: DataTypes.DATE,
-    },
     mitigation: {
         type: DataTypes.STRING(100),
     },
