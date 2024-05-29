@@ -14,8 +14,6 @@ const { Driver } = require('../model/driver.js');
 const { DriverDeclaration } = require('../model/driverDeclaration');
 const { RiskAssessment } = require('../model/riskAssessment');
 
-const { DriverSurvey } = require('../model/driverSurvey');
-const { MedicSurvey } = require('../model/medicSurvey');
 const { MT_RAC } = require('../model/mtRAC');
 const { CheckList } = require('../model/checkList')
 const taskService = require('./taskService.js');
@@ -28,14 +26,6 @@ const CHECKLIST = {
     "3": "Vehicle Check",
     "4": "Just-In-Time Training",
     "5": "MT-RAC",
-}
-const getDriverSurvey = async function (mtRacId) {
-
-	// 
-}
-const getMedicSurvey = async function (mtRacId) {
-	//
-	
 }
 
 const getMT_RAC = async function (taskId) {
@@ -66,19 +56,6 @@ const getMT_RAC = async function (taskId) {
 			mtRAC.riskAssessmentList = riskAssessmentList;
 			let driverDeclarationList = await DriverDeclaration.findAll({ where: { id: mtRAC.driverDeclaration.split(',') } })
 			mtRAC.driverDeclarationList = driverDeclarationList;
-
-			// find our driver survey
-			mtRAC.driverSurvey = await DriverSurvey.findAll({
-				where: {
-					mtRacId: mtRAC.id
-				}
-			})
-			// find out medic survey
-			mtRAC.medicSurvey = await MedicSurvey.findAll({
-				where: {
-					mtRacId: mtRAC.id
-				}
-			})
 
 			log.info(JSON.stringify(mtRAC))
 			// console.log(JSON.stringify(mtRAC, null, 4))
@@ -120,7 +97,7 @@ module.exports = {
 		}
 	},
 	createMT_RAC: async function (req, res) {
-		let { taskId, riskAssessment, driverSurvey, driverDeclaration, submittedBy, submittedDateTime } = req.body;
+		let { taskId, riskAssessment, driverDeclaration, submittedBy, submittedDateTime } = req.body;
 
 		if (taskId.startsWith('DUTY')) {
 
@@ -172,7 +149,7 @@ module.exports = {
 				)
 			`, { type: QueryTypes.SELECT, replacements: [ taskId ] })
 			if (mtRACList.length) {
-				log.info(`There exist un-signed mt-rac record`)
+				log.info(`There exist un-signed mt-rac record(taskId: ${ taskId })`)
 				let mtRAC = await getMT_RAC(taskId);
 				return res.json(utils.response(-1, mtRAC));
 			}
@@ -188,29 +165,11 @@ module.exports = {
 			await MT_RAC.create(req.body, { returning: true });
 			
 			let mtRAC = await getMT_RAC(taskId);
-			if (driverSurvey.length) {
-				await DriverSurvey.bulkCreate(driverSurvey.map(question => {
-					return {
-						taskId,
-						mtRacId: mtRAC.id,
-						question: question.question,
-						answer: question.answer,
-						photo: question.photo,
-						remark: question.remark
-					}
-				}))
-			}
-
+			
 			return res.json(utils.response(1, mtRAC));
 		}).catch(error => {
 			throw error
 		})
-	},
-	updateMT_RAC: async function (req, res) {
-		// mt_rac already created, but not finished
-		// declaration / stand order updated here, while finished stand order, mt rac finished create, can sign now
-
-
 	},
 	verifyMT_RAC: async function (req, res) {
 		try {
@@ -227,7 +186,7 @@ module.exports = {
 
 			await sequelizeObj.transaction(async transaction => {
 				let mtRAC = null;
-				mtRAC = await MT_RAC.findOne({ where: { taskId }, order: [ [ 'id', 'DESC' ] ] });
+				mtRAC = await MT_RAC.findOne({ where: { taskId }, order: [ [ 'id', '	' ] ] });
 				if (signatureFrom === 'officer') {
 					mtRAC.officer = signatureBy;
 					mtRAC.officerSignature = signature;
@@ -307,7 +266,7 @@ module.exports = {
 			let riskAssessmentList = await RiskAssessment.findAll();
 			let riskTypeList = riskAssessmentList.map(riskAssessment => riskAssessment.riskType)
 			riskTypeList = Array.from(new Set(riskTypeList));
-			let result = []
+			let result = { riskAssessmentList: [] }
 			for (let riskType of riskTypeList) {
 				let newRiskAssessmentList = {
 					name: riskType,
@@ -317,8 +276,9 @@ module.exports = {
 				for (let riskAssessment of riskAssessmentList) {
 					if (riskAssessment.riskType === riskType) newRiskAssessmentList.assessmentList.push(riskAssessment)
 				}
-				result.push(newRiskAssessmentList)
+				result.riskAssessmentList.push(newRiskAssessmentList)
 			}
+
 			return res.json(utils.response(1, result));
 		} catch (error) {
 			log.error(error)
@@ -364,88 +324,4 @@ module.exports = {
 		}
 	},
 	
-	createMedicSurvey: async function (req, res) {
-		let { medicSurvey, taskId } = req.body;
-
-		if (taskId.startsWith('DUTY')) {
-			let temp = taskId.split('-')
-			taskId = `DUTY-${ temp[1] }` 
-		}
-
-		if (medicSurvey.length) {
-			// while offline, can not get mtRacId, so find mt-rac latest by taskId
-			let mtRac = await MT_RAC.findOne({
-				where: {
-					taskId
-				},
-				order: [
-					[ 'id', 'DESC' ]
-				]
-			})
-			await MedicSurvey.bulkCreate(medicSurvey.map(question => {
-				return {
-					taskId,
-					mtRacId: mtRac.id,
-					question: question.question,
-					answer: question.answer,
-					photo: question.photo,
-					remark: question.remark
-				}
-			}))
-		}
-	},
-	verifyDriverSurvey: async function (req, res) {
-		let { taskId, signature, signatureBy, signatureDateTime } = req.body
-		if (!taskId) {
-			log.warn(`TaskId ${ taskId } do not exist.`)
-			return res.json(utils.response(1, `TaskId ${ taskId } do not exist.`));
-		}
-
-		// while urgent task
-		if (taskId.startsWith('DUTY')) {
-			let temp = taskId.split('-')
-			taskId = `DUTY-${ temp[1] }` 
-		}
-
-		await sequelizeObj.transaction(async t => {
-			let mtRAC = await MT_RAC.findOne({ where: { taskId }, order: [ [ 'id', 'DESC' ] ] });
-			if (!mtRAC) {
-				log.warn(`TaskId ${ taskId } do not need sign driver survey.`)
-				return res.json(utils.response(1, `TaskId ${ taskId } do not need sign driver survey.`));
-			}
-	
-			mtRAC.driverSignatureBy = signatureBy
-			mtRAC.driverSignature = signature
-			mtRAC.driverSignatureDateTime = moment(signatureDateTime).format('YYYY-MM-DD HH:mm:ss')
-	
-			await mtRAC.save()
-		})
-	},
-	verifyMedicSurvey: async function (req, res) {
-		let { taskId, signature, signatureBy, signatureDateTime } = req.body
-		if (!taskId) {
-			log.warn(`TaskId ${ taskId } do not exist.`)
-			return res.json(utils.response(1, `TaskId ${ taskId } do not exist.`));
-		}
-
-		// while urgent task
-		if (taskId.startsWith('DUTY')) {
-			let temp = taskId.split('-')
-			taskId = `DUTY-${ temp[1] }` 
-		}
-
-		await sequelizeObj.transaction(async t => {
-			let mtRAC = await MT_RAC.findOne({ where: { taskId }, order: [ [ 'id', 'DESC' ] ] });
-			if (!mtRAC) {
-				log.warn(`TaskId ${ taskId } do not need sign medic survey.`)
-				return res.json(utils.response(1, `TaskId ${ taskId } do not need sign medic survey.`));
-			}
-	
-			mtRAC.medicSignatureBy = signatureBy
-			mtRAC.medicSignature = signature
-			mtRAC.medicSignatureDateTime = moment(signatureDateTime).format('YYYY-MM-DD HH:mm:ss')
-	
-			await mtRAC.save()
-		})
-	},
 }

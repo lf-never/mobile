@@ -81,10 +81,10 @@ const buildDriverTask = async function(dataItem, systemTask) {
             dataItem.serviceModeValue = 'pickup'
         }
 
-        log.info(`*********************`)
-        log.info(dataItem.serviceModeName)
-        log.info(dataItem.serviceModeValue)
-        log.info(`*********************`)
+        // log.info(`*********************`)
+        // log.info(dataItem.serviceModeName)
+        // log.info(dataItem.serviceModeValue)
+        // log.info(`*********************`)
 
         dataItem.pickupDestinationLat = dataItem.pickupGPS.split(',')[0].trim();
         dataItem.pickupDestinationLng = dataItem.pickupGPS.split(',')[1].trim();

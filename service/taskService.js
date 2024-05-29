@@ -558,7 +558,6 @@ module.exports = {
 						await Task.update({ driverStatus: 'Ready', vehicleStatus: 'Ready' }, { where: { taskId: task.taskId, driverStatus: 'waitcheck' } })
 					} else if (checkList5) {
 						task.taskReady = true;
-						let a = '';
 						if (task.taskId.startsWith('DUTY')) {
 							await UrgentIndent.update({ status: 'Ready' }, { where: { dutyId: task.taskId.split('-')[1], status: 'waitcheck' } })
 							await UrgentDuty.update({ status: 'Ready' }, { where: { dutyId: 'DUTY-' + task.taskId.split('-')[1], status: 'waitcheck' } })
@@ -1024,88 +1023,6 @@ module.exports = {
 		await checkTaskStatus2()
 
 		await sequelizeObj.transaction(async (t1) => { 
-			let isComplete = false;
-			const checkTaskComplete = async function () {
-				switch (serviceModeValue) {
-					case 'ferry service': {
-						if (operationType === 'arrive') {
-							// Task is completed here while serviceModeValue = 'ferry service'
-							await Task.update({ mobileStartTime: operationTime }, { where: { taskId } })
-								
-							if (task0.dataFrom == 'MT-ADMIN') {
-								await MtAdmin.update({ arrivalTime: operationTime }, { where: { id: taskId.split('-')[1] } })
-							}
-
-							isComplete = true;
-						}
-
-						break;
-					}
-					case 'delivery': {
-						if (operationType === 'arrive') {
-							await Task.update({ mobileStartTime: operationTime }, { where: { taskId } })
-							if (task0.dataFrom == 'MT-ADMIN') { 
-								await MtAdmin.update({ arrivalTime: operationTime }, { where: { id: taskId.split('-')[1] } })
-							}
-						} else if (operationType === 'depart') {
-							if (task0.dataFrom == 'MT-ADMIN') {
-								await MtAdmin.update({ departTime: operationTime }, { where: { id: taskId.split('-')[1] } })
-							}
-		
-							isComplete = true;
-						}
-						break;
-					}
-					case 'pickup': {
-						if (operationType === 'arrive') {
-							await Task.update({ mobileStartTime: operationTime }, { where: { taskId } })
-							if (task0.dataFrom == 'MT-ADMIN') { 
-								await MtAdmin.update({ arrivalTime: operationTime }, { where: { id: taskId.split('-')[1] } })
-							}
-						} else if (operationType === 'end') {
-							if (task0.dataFrom == 'MT-ADMIN') { 
-								await MtAdmin.update({ endTime: operationTime }, { where: { id: taskId.split('-')[1] } })
-							}
-		
-							isComplete = true;
-						}
-						break;
-					}
-				}
-			}
-			await checkTaskComplete()
-			const checkTaskComplete2 = async function () {
-
-				switch (operationType) {
-					case 'arrive': {
-						// Attention
-						await Task.update({ mobileStartTime: operationTime }, { where: { taskId } });
-						if (task0?.dataFrom == 'MT-ADMIN') { 
-							await MtAdmin.update({ arrivalTime: operationTime }, { where: { id: taskId.split('-')[1] } })
-						}
-
-						break;
-					}
-					case 'depart': {
-						if (task0?.dataFrom == 'MT-ADMIN') { 
-							await MtAdmin.update({ departTime: operationTime }, { where: { id: taskId.split('-')[1] } })
-						}
-						
-						break;
-					}
-					case 'end': {
-						if (task0?.dataFrom == 'MT-ADMIN') { 
-							await MtAdmin.update({ endTime: operationTime }, { where: { id: taskId.split('-')[1] } });
-						}
-						isComplete = true;
-						
-						break;
-					}
-				}
-			}
-			await checkTaskComplete2();
-
-			if (!isComplete) return;
 			log.info(`UserId ${userId} exe updateTaskOptTime taskId: ${taskId}, task is completed, start update mobiusTask info.`)
 			let mileageTaskId = taskId + (indentId ? ('-' + indentId) : "");
 			let mileageObj = await Mileage.findByPk(mileageTaskId);
@@ -1178,6 +1095,9 @@ module.exports = {
 				await updateDutyTask();
 			} else {
 				await Task.update({ mobileEndTime: operationTime, driverStatus: 'completed', vehicleStatus: 'completed' }, { where: { taskId } });
+			}
+			if (task0.dataFrom == 'MT-ADMIN') { 
+				await MtAdmin.update({ endTime: operationTime }, { where: { id: taskId.split('-')[1] } })
 			}
 
 			// Update vehicle total mileage
