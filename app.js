@@ -1,108 +1,51 @@
-const express = require('express');
-const session = require('express-session');
-const favicon = require('serve-favicon');
-const path = require('path');
-const logger = require('morgan');
-const cookieParser = require('cookie-parser');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-let ejs = require('ejs');
-const rateLimit = require("express-rate-limit");
-const csurf = require("csurf");
-
-// Rate limit middleware
-const singpassRateLimit = rateLimit({
-  windowMs: 1 * 1000, // 1 seconds
-  max: 1000,
-  message: "Access count exceeded limit!",
-  statusCode: 400,
-  skip: function (req) {
-      //return req.chkAdmin
-  }
-});
-
-require('./log/winston').initLogger()
+require('./db/dbHelper');
 const log = require('./log/winston').logger('APP');
-const utils = require('./util/utils');
 
-const index = require('./routes/index');
-const keypress = require('./routes/keypress');
-const offline = require('./routes/offline');
-const urlInterceptor = require('./interceptor/urlInterceptor');
-const taskStatusCheckInterceptor = require('./interceptor/taskStatusCheckInterceptor');
+// const sosSchedule = require('./schedule/sosSchedule.js');
+// sosSchedule.calcSosSchedule();
 
-const mobileTORouter = require('./routes/mobileTO');
-const mobileTripRouter = require('./routes/mobileTrip');
+// const ownerHotoAndLoanReturn = require('./schedule/ownerHotoAndLoanReturn.js');
+// ownerHotoAndLoanReturn.hotoReturnSchedule();
 
-const app = express();
-const cpu = require('./routes/cpu');
-app.use('/cpu', cpu);
+// // const intiUrgentDuty = require('./schedule/initUrgentDuty.js');
+// // intiUrgentDuty.urgentDutySchedule();
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.engine('html', ejs.__express);
-app.set('view engine', 'html');
+// const DriverORDExpiredSchedule = require('./schedule/DriverORDExpiredSchedule.js');
+// DriverORDExpiredSchedule.driverORDExpiredSchedule();
 
-app.disable('x-powered-by');
+// // const notificationSchedule = require('./schedule/notificationSchedule.js');
+// // notificationSchedule.prepareSendNotification();
 
-app.use(logger('dev'));
-app.use(favicon(path.join(__dirname, 'public', 'mobius.ico')));
-app.use(bodyParser.json({limit: '100mb'}));
-app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
-app.use(cookieParser());
-app.use(cors());
-app.use(csurf());
+// const driverLicenseExchangeSchedule = require('./schedule/driverLicenseExchangeSchedule.js');
+// driverLicenseExchangeSchedule.calcDriverLicenseExchange();
 
-app.use(express.static(path.join(__dirname, 'public')));
+// const trafficSchedule = require('./schedule/trafficSchedule');
+// trafficSchedule.updateTrafficSpeedBandsByChildProcess();
 
-app.use(function (req, res, next) {
-  res.setTimeout(5 * 60 * 1000, function () {
-      log.info('*************************');
-      log.info('Request has timed out. ');
-      log.info('HTTP Request URL: ', req.url);
-      log.info('HTTP Request Body: ', JSON.stringify(req.body));
-      log.info('*************************');
-      res.json(utils.response(0, 'Request has timed out.'));
-  });
-  next();
-});
+// const driverMonthAchievementSchedule = require('./schedule/driverMonthAchievementSchedule.js');
+// driverMonthAchievementSchedule.calcDriverMonthAchievement();
 
-app.use(urlInterceptor);
-app.use(taskStatusCheckInterceptor);
-app.use('/mobileTO', mobileTORouter);
-app.use('/mobileTrip', mobileTripRouter);
+// const VehicleWptSchedule = require('./schedule/VehicleWptSchedule.js');
+// VehicleWptSchedule.calcVehicleWptInfoSchedule();
 
-app.use('/', index);
-app.use('/keypress', keypress);
-app.use('/offline', offline);
+const resourceMonthWorkdaysStatSchedule = require('./schedule/resourceMonthWorkdaysStatSchedule.js');
+resourceMonthWorkdaysStatSchedule.calcResourceMonthWorkdays();
 
-//singpass login
-const singpassHome = require('./singpass/home')
-const callback = require('./singpass/callback')
-app.get('/singpassHome', singpassHome)
-app.get('/callback', singpassRateLimit, callback)
+// const { urgentNoGoZoneSchedule } = require('./schedule/noGoZoneSchedule.js');
+// urgentNoGoZoneSchedule();
+
+// 2022-10-25
+// Remove, will calculate by mobile logout
+// const mq = require('./activemq/activemq')
+// mq.initActiveMQ()
+// const obdMileageSchedule = require('./schedule/obdMileageSchedule');
+// obdMileageSchedule.CheckOBDDistance();
 
 process.on('uncaughtException', function (e) {
-  log.error(`uncaughtException`)
-  log.error(e)
+    log.error(`uncaughtException`)
+    log.error(e.message)
 });
 process.on('unhandledRejection', function (err, promise) {
-  log.error(`unhandledRejection`);
-  log.error(err);
+    log.error(`unhandledRejection`);
+    log.error(err.message);
 })
-
-app.use(function(req, res, next) {
-    const err = new Error('Not Found');
-    err.status = 404;
-    next(err);
-});
-
-app.use(function(err, req, res, next) {
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-  res.status(err.status || 500);
-  log.error(`URL(${ req.originalUrl }) `, err);
-  res.json(utils.response(0, err.message)); 
-});
-
-module.exports = app;

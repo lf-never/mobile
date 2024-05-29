@@ -4,7 +4,7 @@ const conf = require('../conf/conf.js');
 
 const { Sequelize } = require('sequelize');
 const createNamespace = require('cls-hooked').createNamespace;
-const transportNamespace = createNamespace('mobile-system');
+const transportNamespace = createNamespace('system');
 Sequelize.useCLS(transportNamespace);
 
 module.exports.sequelizeSystemObj = new Sequelize(conf.dbSystemConf.database, conf.dbSystemConf.user, conf.dbSystemConf.password, {
@@ -12,10 +12,7 @@ module.exports.sequelizeSystemObj = new Sequelize(conf.dbSystemConf.database, co
     port: conf.dbSystemConf.port,
     dialect: 'mysql',
     logging: msg => {
-        //not print select sql
-        if (msg && msg.indexOf('SELECT') == -1 && msg.indexOf('select') == -1) {
-            log.info(msg)
-        }
+        log.info(msg)
     },
     define: {
         freezeTableName: true
