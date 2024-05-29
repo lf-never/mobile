@@ -16,6 +16,12 @@ module.exports.UrgentConfig = dbConf.sequelizeObj.define('urgentConfig', {
     node: {
         type: DataTypes.STRING(50),
     },
+    unitId: {
+        type: DataTypes.BIGINT(15),
+    },
+    groupId: {
+        type: DataTypes.BIGINT(15),
+    },
     category: {
         type: DataTypes.STRING(50),
         defaultValue: 'MV'
@@ -36,7 +42,7 @@ module.exports.UrgentConfig = dbConf.sequelizeObj.define('urgentConfig', {
         type: DataTypes.STRING(50),
     },
     vehicleNo: {
-        type: DataTypes.STRING(15),
+        type: DataTypes.STRING(30),
     },
     driverId: {
         type: DataTypes.BIGINT(15),
@@ -44,6 +50,15 @@ module.exports.UrgentConfig = dbConf.sequelizeObj.define('urgentConfig', {
     creator: {
         type: DataTypes.INTEGER(11),
         defaultValue: null,
+    },
+    cancelledDateTime: {
+        type: DataTypes.DATE
+    },
+    cancelledCause: {
+        type: DataTypes.STRING(255),
+    },
+    amendedBy: {
+        type: DataTypes.INTEGER(11),
     },
 }, {
     tableName: 'urgent_config',

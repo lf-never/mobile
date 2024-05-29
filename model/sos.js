@@ -12,7 +12,7 @@ module.exports.SOS = dbConf.sequelizeObj.define('sos', {
         type: DataTypes.STRING,
         allowNull: false,
         defaultValue: 'Incident',
-        comment: 'Incident, Breakdown, Hazard/Near Miss Report, Road Closure'
+        comment: 'Incident, Breakdown, Feeling Unwell, Breach TO Rights'
     },
     driverId: {
         type: DataTypes.INTEGER,
@@ -40,6 +40,18 @@ module.exports.SOS = dbConf.sequelizeObj.define('sos', {
     },
     updatedAt: {
         type: DataTypes.DATE,
+    },
+    demeritPoint: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
+    optBy: {
+        type: DataTypes.INTEGER(11),
+        allowNull: false
+    },
+    optAt: {
+        type: DataTypes.DATE,
+        allowNull: false
     }
 }, {
     // other options

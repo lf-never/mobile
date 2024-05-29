@@ -8,10 +8,11 @@ module.exports.PermitType = dbConf.sequelizeObj.define('permitType', {
     },
     vehicleType: {
         type: DataTypes.INTEGER(2000),
-        defaultValue: null,
+        defaultValue: ''
     },
     parent: {
-        type: DataTypes.STRING(55)
+        type: DataTypes.STRING(55),
+        defaultValue: ''
     },
     eligibilityMileage: {
         type: DataTypes.FLOAT(20, 1),

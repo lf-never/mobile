@@ -53,14 +53,6 @@ module.exports.MobileTrip = dbConf.sequelizeObj.define('mobile_trip', {
     status: {
         type: DataTypes.STRING(20),
     },
-    groupId: {
-        type: DataTypes.INTEGER(12),
-        defaultValue: null,
-    },
-    unitId: {
-        type: DataTypes.INTEGER(12),
-        defaultValue: null,
-    },
     cancelledDateTime: {
         type: DataTypes.DATE
     },
@@ -68,6 +60,16 @@ module.exports.MobileTrip = dbConf.sequelizeObj.define('mobile_trip', {
         type: DataTypes.STRING(255),
     },
     cancelledBy: {
+        type: DataTypes.BIGINT(20), 
+    },
+    groupId: {
+        type: DataTypes.INTEGER(12),
+        defaultValue: null,
+    },
+    approveDateTime: {
+        type: DataTypes.DATE
+    },
+    approveBy: {
         type: DataTypes.BIGINT(20), 
     }
 }, {
