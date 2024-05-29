@@ -17,9 +17,6 @@ module.exports.TrackHistory = dbConf.sequelizeObj.define('trackHistory', {
         allowNull: false,
         primaryKey: true,
     },
-    missingType: {
-        type: DataTypes.STRING,
-    },
     vehicleNo: {
         type: DataTypes.STRING,
         defaultValue: null,

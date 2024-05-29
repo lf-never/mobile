@@ -7,18 +7,15 @@ module.exports.UrgentDuty = dbConf.sequelizeObj.define('urgentDuty', {
         autoIncrement: true,
         primaryKey: true,
     },
+    dutyId: {
+        type: DataTypes.STRING(55),
+    },
     configId: {
         type: DataTypes.INTEGER,
     },
-    dutyId: {
-        type: DataTypes.STRING(55)
-    },
-    vehicleNo: {
-        type: DataTypes.STRING(30),
-    },
-    driverId: {
-        type: DataTypes.BIGINT(15),
-    }, 
+    // indentDate: {
+	// 	type: DataTypes.DATE,
+	// },
     indentStartDate: {
 		type: DataTypes.DATE,
 	},

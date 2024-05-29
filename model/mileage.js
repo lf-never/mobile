@@ -3,7 +3,7 @@ const dbConf = require('../db/dbConf');
 
 module.exports.Mileage = dbConf.sequelizeObj.define('mileage', {
     taskId: {
-        type: DataTypes.BIGINT, 
+        type: DataTypes.STRING(20), 
         primaryKey: true,
     },
     date: {

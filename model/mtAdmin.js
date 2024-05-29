@@ -9,104 +9,95 @@ module.exports.MtAdmin = dbConf.sequelizeObj.define('mt_admin', {
     },
     purpose: {
         type: DataTypes.STRING(50),
+        allowNull: false,
     },
     activityName: {
         type: DataTypes.STRING(100),
     },
     unitId: {
         type: DataTypes.BIGINT(15),
+        allowNull: false,
     },
     startDate: {
         type: DataTypes.DATE,
+        allowNull: false,
     },
 	endDate: {
         type: DataTypes.DATE,
+        allowNull: false,
     },
 	vehicleNumber: {
         type: DataTypes.STRING(255),
+        allowNull: false,
     },
 	vehicleType: {
         type: DataTypes.STRING(255),
+        allowNull: false,
     },
 	driverName: {
 		type: DataTypes.STRING(255),
+        allowNull: false,
 	},
     driverId: {
         type: DataTypes.BIGINT(15),
+        allowNull: false,
     },
 	mobileNumber: {
 		type: DataTypes.STRING(30),
-        defaultValue: ''
+        allowNull: false,
 	},
 	remarks: {
 		type: DataTypes.TEXT,
+        allowNull: false,
 	},
     category: {
 		type: DataTypes.STRING(100),
+        allowNull: false,
 	},
     serviceMode: {
 		type: DataTypes.STRING(50),
+        allowNull: false,
 	},
     reportingLocation: {
 		type: DataTypes.STRING(255),
+        allowNull: false,
 	},
     destination: {
 		type: DataTypes.STRING(255),
+        allowNull: false,
 	},
+    secured: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+    },
     reportingLocationLat: {
         type: DataTypes.STRING(45),
+        allowNull: false,
     },
     reportingLocationLng: {
         type: DataTypes.STRING(45),
+        allowNull: false,
     },
     destinationLat: {
         type: DataTypes.STRING(45),
+        allowNull: false,
     },
     destinationLng: {
         type: DataTypes.STRING(45),
+        allowNull: false,
     },
     poc: {
         type: DataTypes.STRING(255),
-        defaultValue: ''
+        allowNull: false,
     },
-    mbUnit: {
-        type: DataTypes.STRING(128),
-    },
-    indentId: {
-        type: DataTypes.STRING(128),
-    },
-    driverNum: {
-        type: DataTypes.STRING(128),
-        defaultValue: 1
-    },
-    needVehicle: {
-        type: DataTypes.TINYINT(1),
-        defaultValue: 1
-    },
-    dataType: {
-        type: DataTypes.STRING(4),
-        defaultValue: 'mt'
-    },
-    cancelledDateTime: {
-        type: DataTypes.DATE
-    },
-    cancelledCause: {
-        type: DataTypes.STRING(255),
-    },
-    amendedBy: {
-        type: DataTypes.BIGINT(20), 
-    },
-    creator: {
-        type: DataTypes.INTEGER(11),
-        defaultValue: null,
-    },
-    createdAt: {
+    arrivalTime: {
         type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW(),
     },
-    updatedAt: {
+    departTime: {
         type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW(),
+    },
+    endTime: {
+        type: DataTypes.DATE,
     },
 }, {
     tableName: 'mt_admin',
