@@ -194,12 +194,26 @@ let NoticeUtils = {
 
         resultList.forEach(notice => {
             let noticeCoverImgPath = `./public/${ notice.coverImage }`
-            noticeCoverImgPath = fileUtils.getSafePath(noticeCoverImgPath);
+            noticeCoverImgPath = noticeCoverImgPath || '';
+            noticeCoverImgPath = noticeCoverImgPath.replace(/%2e/ig, '.')
+            noticeCoverImgPath = noticeCoverImgPath.replace(/%2f/ig, '/')
+            noticeCoverImgPath = noticeCoverImgPath.replace(/%5c/ig, '\\')
+            noticeCoverImgPath = noticeCoverImgPath.replace(/^[/\\]?/, '/')
+            noticeCoverImgPath = noticeCoverImgPath.replace(/[/\\]\.\.[/\\]/, '/')
+            noticeCoverImgPath = noticeCoverImgPath.normalize(noticeCoverImgPath).replace(/\\/g, '/').slice(1)
+
             if (notice.coverImage && !fs.existsSync(noticeCoverImgPath)) {
                 fs.writeFileSync(noticeCoverImgPath, Buffer.from(notice.coverImageBase64, 'base64'))
             }
             let noticeMainImgPath = `./public/${ notice.mainImage }`
-            noticeMainImgPath = fileUtils.getSafePath(noticeMainImgPath);
+            noticeMainImgPath = noticeMainImgPath || '';
+            noticeMainImgPath = noticeMainImgPath.replace(/%2e/ig, '.')
+            noticeMainImgPath = noticeMainImgPath.replace(/%2f/ig, '/')
+            noticeMainImgPath = noticeMainImgPath.replace(/%5c/ig, '\\')
+            noticeMainImgPath = noticeMainImgPath.replace(/^[/\\]?/, '/')
+            noticeMainImgPath = noticeMainImgPath.replace(/[/\\]\.\.[/\\]/, '/')
+            noticeMainImgPath = noticeMainImgPath.normalize(noticeMainImgPath).replace(/\\/g, '/').slice(1)
+
             if (notice.mainImage && !fs.existsSync(noticeMainImgPath)) {
                 fs.writeFileSync(noticeMainImgPath, Buffer.from(notice.mainImageBase64, 'base64'))
             }
