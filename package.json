@@ -12,7 +12,7 @@
   "dependencies": {
     "axios": "^1.4.0",
     "cls-hooked": "^4.2.2",
-    "debug": "~2.2.0",
+    "debug": "~2.6.9",
     "graceful-fs": "^4.2.11",
     "jsonfile": "^6.1.0",
     "moment": "^2.29.3",
